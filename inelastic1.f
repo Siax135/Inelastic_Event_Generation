@@ -144,8 +144,6 @@ c            write(*,*) 'e anlge:',ELECANG,'Pe:',ELECP
 30      if (NEU .AND. PION .AND. (ELECANG < 18 .AND. ELECANG > 12)) then
           call pyedit(1)
 
-
-
           call pylist(2)
 
 
@@ -156,30 +154,6 @@ c            write(*,*) 'e anlge:',ELECANG,'Pe:',ELECP
      +          P(J,5),V(J,1)/10,V(J,2)/10,
      +          V(J,3)/10
           enddo
-
-c            do J=3,LENGTH
-c              if (K(J,4) .EQ. 0) then
-c                  FINAL = FINAL+1
-c              endif
-c            enddo
-c           write(*,*) 'Undecayed Particles:',FINAL
-c          write(*,*) P(ELECLOC,1),P(ELECLOC,2),P(ELECLOC,3)
-c          write(2,100) 3
-
-c          write(2,200) 1,-1,1,K(ELECLOC,2),K(ELECLOC,3),0,
-c     +          P(ELECLOC,1),P(ELECLOC,2),P(ELECLOC,3),P(ELECLOC,4),
-c     +          P(ELECLOC,5),V(ELECLOC,1)/10,V(ELECLOC,2)/10,
-c     +          V(ELECLOC,3)/10
-
-c          write(2,200) 2,1,1,K(PILOC,2),K(PILOC,3),0,
-c     +          P(PILOC,1),P(PILOC,2),P(PILOC,3),P(PILOC,4),
-c     +          P(PILOC,5),V(PILOC,1)/10,V(PILOC,2)/10,
-c     +          V(PILOC,3)/10
-
-c          write(2,200) 3,0,1,K(NEULOC,2),K(NEULOC,3),0,
-c     +          P(NEULOC,1),P(NEULOC,2),P(NEULOC,3),P(NEULOC,4),
-c     +          P(NEULOC,5),V(NEULOC,1)/10,V(NEULOC,2)/10,
-c     +          V(NEULOC,3)/10
 
           NUMEV = NUMEV+1
         endif
