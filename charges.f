@@ -1,14 +1,11 @@
-      COMMON/PIDCHRG/CHARGE(-321:2112)
-      INTEGER I
+      BLOCK DATA CHARGES
+      integer I, MCHARGE(-321:2112)
+      COMMON/PIDCHRG/MCHARGE
 
-      do I=-321,2112
-        CHARGE(I) = 999
-      enddo
+c Currently contains charges for K-(-321), pi-(-211), e-(11), photon(22),
+c pi+(211), K+(321), and the neutron(2112)
 
-      CHARGE(-321) = -1 ! K-
-      CHARGE(-211) = -1 ! pi-
-      CHARGE(11) = -1   ! e-
-      CHARGE(22) = 0    ! photon
-      CHARGE(211) = 1   ! pi+
-      CHARGE(321) = 1   ! K+
-      CHARGE(2112) = 0  ! neutron
+      DATA (MCHARGE(I),I=-321,2112)/-1,109*999,-1,221*999,-1,10*999,0,
+     +  188*999,1,109*999,1,1790*999,0/
+
+      END

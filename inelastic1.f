@@ -34,22 +34,25 @@ C...Commonblocks.
       CHARACTER CPRO*12,CVER*12
 
 
-      integer I,J,PARN,NUMEV,NEULOC,PILOC,ELECLOC,EVENT,FINAL
+      integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,MEVENT
+      integer MCHARGE(-321:2112)
       logical NEU,PION
       character OUTPUT*15
       real ELECP, ELECANG
       double precision P(4000,5),V(4000,5)
       integer N,NPAD,K(4000,5)
       COMMON/PYJETS/N,NPAD,K,P,V
+      COMMON/PIDCHRG/MCHARGE
+
 
       SAVE /PYDAT1/,/PYDAT2/,/PYDAT3/,/PYDAT4/,/PYDATR/,/PYSUBS/,
      &/PYPARS/,/PYINT1/,/PYINT2/,/PYINT3/,/PYINT4/,/PYINT5/,
      &/PYINT6/,/PYINT7/,/PYMSSM/,/PYSSMT/,/PYMSRV/,/PYTCSM/,
-     &/PYBINS/,/PYLH3P/,/PYLH3C/
+     &/PYBINS/,/PYLH3P/,/PYLH3C/,/PIDCHRG/
 
       NEU = .FALSE.
       PION = .FALSE.
-      PARN = 0
+      MPARN = 0
       NUMEV = 0
       PARP(2) = 2D0
 
@@ -62,7 +65,7 @@ C...Commonblocks.
      6 1X,F5.3,          ! y
      7 2X,F5.3,          ! W
      8 1X,F5.3,          ! Q^2
-     9 2X,F5.3).         ! nu
+     9 2X,F5.3)          ! nu
 
 200   format(4X,I2,      ! Index
      1 3X,I2,            ! Charge
@@ -92,18 +95,12 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
 c     Generate a single event and print it out
       do I=1,10000
       call pyevnt
-c        call pylist(2)
-c        write(*,*) 'e-', P(1,1),P(1,2),P(1,3)
-c        write(*,*) 'p', P(2,1),P(2,2),P(2,3)
-c        write(*,*) 'In Loop'
-
-c        write(*,*) 'Got Length'
 
 c       Check to see if we have a neutron, if so then grab its parent
-        do J=1,N
-          if (K(J,2) .EQ. 2112) then
-            NEULOC = J
-            PARN = K(J,3)
+        do MJ=1,N
+          if (K(MJ,2) .EQ. 2112) then
+            NEULOC = MJ
+            MPARN = K(MJ,3)
             NEU = .TRUE.
             goto 20
           endif
@@ -111,7 +108,7 @@ c       Check to see if we have a neutron, if so then grab its parent
 
 c        write(*,*) 'Looked for neutron'
 
-20      if (K(PARN,2) .NE. 2214) then
+20      if (K(MPARN,2) .NE. 2214) then
           NEU = .FALSE.
           NUELOC = -1
           goto 10
@@ -121,22 +118,17 @@ c        write(*,*) 'Looked for neutron'
 
 c        write(*,*) 'Found a neutron'
 
-        do J=1,N
-          if (K(J,2) .EQ. 211 .AND. K(J,3) .EQ. PARN) then
-            PILOC = J
+        do MJ=1,N
+          if (K(MJ,2) .EQ. 211 .AND. K(MJ,3) .EQ. MPARN) then
+            MPILOC = MJ
             PION = .TRUE.
-c            NUMEV = NUMEV+1
-c            call pylist(2)
           endif
         enddo
 
-        do J=3,N
-          if (K(J,2) .EQ. 11) then
-            ELECLOC = J
-c            ELECP = SQRT((P(ELECLOC,1)**2)+(P(ELECLOC,2)**2)+
-c     +       (P(ELECLOC,3)**2))
-            ELECANG = ACOS((P(ELECLOC,3)/P(ELECLOC,4)))*(180/3.14159)
-c            write(*,*) 'e anlge:',ELECANG,'Pe:',ELECP
+        do MJ=3,N
+          if (K(MJ,2) .EQ. 11) then
+            MELECLOC = MJ
+            ELECANG = ACOS((P(MELECLOC,3)/P(MELECLOC,4)))*(180/3.14159)
             goto 30
           endif
         enddo
@@ -146,22 +138,21 @@ c            write(*,*) 'e anlge:',ELECANG,'Pe:',ELECP
 
           call pylist(2)
 
-
-          write(2,100) N
-          do J=1,N
-            write(2,200) J,0,1,K(J,2),K(J,3),0,
-     +          P(J,1),P(J,2),P(J,3),P(J,4),
-     +          P(J,5),V(J,1)/10,V(J,2)/10,
-     +          V(J,3)/10
+          write(2,100) N,1,1,0.000,0.000,0.000,0.000,0.000,0.000,0.000
+          do MJ=1,N
+            write(2,200) MJ,MCHARGE(K(MJ,2)),1,K(MJ,2),K(MJ,3),0,
+     +          P(MJ,1),P(MJ,2),P(MJ,3),P(MJ,4),
+     +          P(MJ,5),V(MJ,1)/10,V(MJ,2)/10,
+     +          V(MJ,3)/10
           enddo
 
           NUMEV = NUMEV+1
         endif
 
-10    EVENT = EVENT+1
+10    MEVENT = MEVENT+1
       enddo
 
-      write(*,*) NUMEV, EVENT
+      write(*,*) NUMEV, MEVENT
 
       stop
       end
