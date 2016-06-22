@@ -35,7 +35,7 @@ C...Commonblocks.
 
 
       integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,MEVENT
-      integer MCHARGE(-321:2112)
+      integer MCHARGE(-2212:2212)
       logical NEU,PION
       character OUTPUT*15
       real ELECP, ELECANG
@@ -91,6 +91,17 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
       call pyinit('FIXT','gamma/e-','p+',11D0)
 
       write(*,*) 'Initialized'
+
+      write(*,*) 'Test MCHARGE(-2212):',MCHARGE(-2212)
+      write(*,*) 'Test MCHARGE(-321):',MCHARGE(-321)
+      write(*,*) 'Test MCHARGE(-211):',MCHARGE(-211)
+      write(*,*) 'Test MCHARGE(11):',MCHARGE(11)
+      write(*,*) 'Test MCHARGE(22):',MCHARGE(22)
+      write(*,*) 'Test MCHARGE(211):',MCHARGE(211)
+      write(*,*) 'Test MCHARGE(321):',MCHARGE(321)
+      write(*,*) 'Test MCHARGE(2112):',MCHARGE(2112)
+      write(*,*) 'Test MCHARGE(2212):',MCHARGE(2212)
+      write(*,*) 'Test MCHARGE(45):',MCHARGE(45)
 
 c     Generate a single event and print it out
       do I=1,10000
