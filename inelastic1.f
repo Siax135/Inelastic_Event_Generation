@@ -56,7 +56,7 @@ C...Commonblocks.
       NUMEV = 0
       PARP(2) = 2D0
 
-100   format(11X,I1,     ! Number of particles
+100   format(11X,I2,     ! Number of particles
      1 2X,I1,            ! Num of target nucleons
      2 2X,I1,            ! Num of target protons
      3 2X,F5.3,          ! Target polarization
@@ -76,11 +76,11 @@ C...Commonblocks.
      6 8X,F7.4,          ! Px
      7 3X,F7.4,          ! Py
      8 3X,F7.4,          ! Pz
-     9 3X,F6.4,          ! E
-     1 3X,F6.4,          ! mass
-     2 3X,F6.4,          ! Vertex x
-     3 3X,F6.4,          ! Vertex y
-     4 3X,F6.4)          ! Vertex z
+     9 3X,F7.4,          ! E
+     1 3X,F7.4,          ! mass
+     2 3X,F7.4,          ! Vertex x
+     3 3X,F7.4,          ! Vertex y
+     4 3X,F7.4)          ! Vertex z
 
       call getarg(1,OUTPUT)
       open(2,file=OUTPUT)
@@ -95,8 +95,10 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
       write(*,*) 'Test MCHARGE(-2212):',MCHARGE(-2212)
       write(*,*) 'Test MCHARGE(-321):',MCHARGE(-321)
       write(*,*) 'Test MCHARGE(-211):',MCHARGE(-211)
+      write(*,*) 'Test MCHARGE(-11):',MCHARGE(-11)
       write(*,*) 'Test MCHARGE(11):',MCHARGE(11)
       write(*,*) 'Test MCHARGE(22):',MCHARGE(22)
+      write(*,*) 'Test MCHARGE(130):',MCHARGE(130)
       write(*,*) 'Test MCHARGE(211):',MCHARGE(211)
       write(*,*) 'Test MCHARGE(321):',MCHARGE(321)
       write(*,*) 'Test MCHARGE(2112):',MCHARGE(2112)
@@ -104,7 +106,12 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
       write(*,*) 'Test MCHARGE(45):',MCHARGE(45)
 
 c     Generate a single event and print it out
-      do I=1,10000
+      do I=0,1000000
+
+      if( MOD(I,5000) .EQ. 0) then
+        write(*,*) 'Event: ',I
+      endif
+
       call pyevnt
 
 c       Check to see if we have a neutron, if so then grab its parent
@@ -147,7 +154,7 @@ c        write(*,*) 'Found a neutron'
 30      if (NEU .AND. PION .AND. (ELECANG < 18 .AND. ELECANG > 12)) then
           call pyedit(1)
 
-          call pylist(2)
+c          call pylist(2)
 
           write(2,100) N,1,1,0.000,0.000,0.000,0.000,0.000,0.000,0.000
           do MJ=1,N
