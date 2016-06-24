@@ -78,9 +78,9 @@ C...Commonblocks.
      8 3X,F7.4,          ! Pz
      9 3X,F7.4,          ! E
      1 3X,F7.4,          ! mass
-     2 3X,F7.4,          ! Vertex x
-     3 3X,F7.4,          ! Vertex y
-     4 3X,F7.4)          ! Vertex z
+     2 3X,F8.4,          ! Vertex x
+     3 3X,F8.4,          ! Vertex y
+     4 3X,F8.4)          ! Vertex z
 
       call getarg(1,OUTPUT)
       open(2,file=OUTPUT)
@@ -93,6 +93,7 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
       write(*,*) 'Initialized'
 
       write(*,*) 'Test MCHARGE(-2212):',MCHARGE(-2212)
+      write(*,*) 'Test MCHARGE(-2112):',MCHARGE(-2112)
       write(*,*) 'Test MCHARGE(-321):',MCHARGE(-321)
       write(*,*) 'Test MCHARGE(-211):',MCHARGE(-211)
       write(*,*) 'Test MCHARGE(-11):',MCHARGE(-11)
