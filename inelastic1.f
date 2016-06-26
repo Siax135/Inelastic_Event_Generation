@@ -152,7 +152,7 @@ c        write(*,*) 'Found a neutron'
           endif
         enddo
 
-30      if (NEU .AND. PION .AND. (ELECANG < 18 .AND. ELECANG > 12)) then
+30      if (NEU .AND. PION .AND. (ELECANG < 37 .AND. ELECANG > 8)) then
           call pyedit(1)
 
 c          call pylist(2)
