@@ -5,7 +5,7 @@ C...Double precision and integer declarations.
       IMPLICIT DOUBLE PRECISION(A-H, O-Z)
       IMPLICIT INTEGER(I-N)
       INTEGER PYK,PYCHGE,PYCOMP
-C...Commonblocks.
+C...PYTHIA Commonblocks.
       COMMON/PYDAT1/MSTU(200),PARU(200),MSTJ(200),PARJ(200)
       COMMON/PYDAT2/KCHG(500,4),PMAS(500,4),PARF(2000),VCKM(4,4)
       COMMON/PYDAT3/MDCY(500,3),MDME(8000,2),BRAT(8000),KFDP(8000,5)
@@ -33,12 +33,13 @@ C...Commonblocks.
       COMMON/PYLH3C/CPRO(2),CVER(2)
       CHARACTER CPRO*12,CVER*12
 
-
-      integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,MEVENT
+c...Required variables
+      integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,MEVENT,NGENEV
+      integer NPRINT
       integer MCHARGE(-2212:2212)
       logical NEU,PION
-      character OUTPUT*15
-      real ELECP, ELECANG
+      character ARG*32,OUTPUT*32
+      real ELECANG, THETAMIN, THETAMAX
       double precision P(4000,5),V(4000,5)
       integer N,NPAD,K(4000,5)
       COMMON/PYJETS/N,NPAD,K,P,V
@@ -56,6 +57,15 @@ C...Commonblocks.
       NUMEV = 0
       PARP(2) = 2D0
 
+c...Set argument defaults
+      OUTPUT = 'out.dat'
+      NGENEV = 20
+      NPRINT = 5
+      THETAMIN = 0
+      THETAMAX = 90
+
+
+c...Set up format for the LUND format
 100   format(11X,I2,     ! Number of particles
      1 2X,I1,            ! Num of target nucleons
      2 2X,I1,            ! Num of target protons
@@ -82,12 +92,68 @@ C...Commonblocks.
      3 3X,F8.4,          ! Vertex y
      4 3X,F8.4)          ! Vertex z
 
-      call getarg(1,OUTPUT)
+c...Set format to show given run parameters
+300   format('Output file:',13X,A32,/,
+     1 'Num events:',6X,I10,/,
+     2 'Num events/print:',I10,/,
+     3 'Theta min:',14X,F7.4,/,
+     4 'Theta max:',15X,F7.4)
+
+c...Parse given arguments
+      J = 1
+      do
+        call get_command_argument(J,ARG)
+        if(LEN_TRIM(ARG) .EQ. 0) exit
+
+        if(TRIM(ARG) .EQ. '-o') then
+          J = J+1
+          call get_command_argument(J,OUTPUT)
+        else if(TRIM(ARG) .EQ. '-n') then
+          J = J+1
+          call get_command_argument(J,ARG)
+          read(ARG,'(I10)') NGENEV
+        else if(TRIM(ARG) .EQ. '-n_print') then
+          J = J+1
+          call get_command_argument(J,ARG)
+          read(ARG,'(I10)') NPRINT
+        else if(TRIM(ARG) .EQ. '-theta_min') then
+          J = J+1
+          call get_command_argument(J,ARG)
+          read(ARG,*) THETAMIN
+        else if(TRIM(ARG) .EQ. '-theta_max') then
+          J = J+1
+          call get_command_argument(J,ARG)
+          read(ARG,*) THETAMAX
+        else if(TRIM(ARG) .EQ. '-h') then
+          write(*,*) 'Options:'
+          write(*,*) '-o           Output file name (default: out.dat)'
+          write(*,*) '-n           Number of events to generate (default
+     +: 20)'
+          write(*,*) '-n_print     Number of events between print statem
+     +ents (default: 5)'
+          write(*,*) '-theta_min   Minimum electron angle (default: 0)'
+          write(*,*) '-theta_max   Maximum electron angle (default: 90)'
+          goto 40
+        endif
+        J = J+1
+      enddo
+
+c...Check that given theta values aren't backwards
+      if( THETAMAX < THETAMIN ) then
+        write(*,*) 'Theta max is less than theta min!'
+        write(*,*) 'Stopping execution!'
+        goto 40
+      endif
+
+c...Print run parameters
+      write(*,300) OUTPUT,NGENEV,NPRINT,THETAMIN,THETAMAX
+
       open(2,file=OUTPUT)
 
+c...Start PYTHIA stuff
       write(*,*) 'Starting Initialization'
 
-c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixed target
+c...Initialize everything, FIXT tells pythia that I have a beam hitting a fixed target
       call pyinit('FIXT','gamma/e-','p+',11D0)
 
       write(*,*) 'Initialized'
@@ -96,8 +162,10 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
       write(*,*) 'Test MCHARGE(-2112):',MCHARGE(-2112)
       write(*,*) 'Test MCHARGE(-321):',MCHARGE(-321)
       write(*,*) 'Test MCHARGE(-211):',MCHARGE(-211)
+      write(*,*) 'Test MCHARGE(-13):',MCHARGE(-13)
       write(*,*) 'Test MCHARGE(-11):',MCHARGE(-11)
       write(*,*) 'Test MCHARGE(11):',MCHARGE(11)
+      write(*,*) 'Test MCHARGE(13):',MCHARGE(13)
       write(*,*) 'Test MCHARGE(22):',MCHARGE(22)
       write(*,*) 'Test MCHARGE(130):',MCHARGE(130)
       write(*,*) 'Test MCHARGE(211):',MCHARGE(211)
@@ -106,16 +174,16 @@ c     Initialize everything, FIXT tells pythia that I have a beam hitting a fixe
       write(*,*) 'Test MCHARGE(2212):',MCHARGE(2212)
       write(*,*) 'Test MCHARGE(45):',MCHARGE(45)
 
-c     Generate a single event and print it out
-      do I=0,1000000
+c...Generate events
+      do I=0,NGENEV
 
-      if( MOD(I,5000) .EQ. 0) then
+      if( MOD(I,NPRINT) .EQ. 0) then
         write(*,*) 'Event: ',I
       endif
 
       call pyevnt
 
-c       Check to see if we have a neutron, if so then grab its parent
+c...Check to see if we have a neutron, if so then grab its parent
         do MJ=1,N
           if (K(MJ,2) .EQ. 2112) then
             NEULOC = MJ
@@ -125,17 +193,11 @@ c       Check to see if we have a neutron, if so then grab its parent
           endif
         enddo
 
-c        write(*,*) 'Looked for neutron'
-
 20      if (K(MPARN,2) .NE. 2214) then
           NEU = .FALSE.
           NUELOC = -1
           goto 10
         endif
-
-
-
-c        write(*,*) 'Found a neutron'
 
         do MJ=1,N
           if (K(MJ,2) .EQ. 211 .AND. K(MJ,3) .EQ. MPARN) then
@@ -152,10 +214,9 @@ c        write(*,*) 'Found a neutron'
           endif
         enddo
 
-30      if (NEU .AND. PION .AND. (ELECANG < 37 .AND. ELECANG > 8)) then
+30      if (NEU .AND. PION .AND. (ELECANG < THETAMAX .AND.
+     +    ELECANG > THETAMIN)) then
           call pyedit(1)
-
-c          call pylist(2)
 
           write(2,100) N,1,1,0.000,0.000,0.000,0.000,0.000,0.000,0.000
           do MJ=1,N
@@ -173,5 +234,5 @@ c          call pylist(2)
 
       write(*,*) NUMEV, MEVENT
 
-      stop
+40    stop
       end
