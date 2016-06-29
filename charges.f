@@ -12,7 +12,7 @@ c in the array is the same as their pid
      +  -1,197*999,   ! pi- (-211)
      +  1,999,        ! antimuon (-13)
      +  1,21*999,     ! positron (-11)
-     +  -1,999,    ! e- (11)
+     +  -1,999,       ! e- (11)
      +  -1,8*999,     ! muon (13)
      +  0,107*999,    ! photon (22)
      +  0,80*999,     ! K0 (130)
