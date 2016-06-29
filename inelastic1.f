@@ -34,10 +34,10 @@ C...PYTHIA Commonblocks.
       CHARACTER CPRO*12,CVER*12
 
 c...Required variables
-      integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,MEVENT,NGENEV
-      integer NPRINT
+      integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,NGENEV
+      integer NPRINT,NSEED
       integer MCHARGE(-2212:2212)
-      logical NEU,PION
+      logical NEU,PION,TEST
       character ARG*32,OUTPUT*32
       real ELECANG, THETAMIN, THETAMAX
       double precision P(4000,5),V(4000,5)
@@ -56,6 +56,7 @@ c...Required variables
       MPARN = 0
       NUMEV = 0
       PARP(2) = 2D0
+c	MSTP(11) = 0
 
 c...Set argument defaults
       OUTPUT = 'out.dat'
@@ -63,7 +64,8 @@ c...Set argument defaults
       NPRINT = 5
       THETAMIN = 0
       THETAMAX = 90
-
+	NSEED = 19780503  ! default set by PYTHIA
+	TEST = .FALSE.
 
 c...Set up format for the LUND format
 100   format(11X,I2,     ! Number of particles
@@ -93,11 +95,13 @@ c...Set up format for the LUND format
      4 3X,F8.4)          ! Vertex z
 
 c...Set format to show given run parameters
-300   format('Output file:',13X,A32,/,
-     1 'Num events:',6X,I10,/,
-     2 'Num events/print:',I10,/,
-     3 'Theta min:',14X,F7.4,/,
-     4 'Theta max:',15X,F7.4)
+300   format('Run Parameters',/,
+     1 'Output file:',13X,A32,/,
+     2 'Num events:',6X,I10,/,
+     3 'Num events/print:',I10,/,
+     4 'Theta min:',14X,F7.4,/,
+     5 'Theta max:',15X,F7.4,/,
+     6 'RNG seed:',15X,I9)
 
 c...Parse given arguments
       J = 1
@@ -124,6 +128,14 @@ c...Parse given arguments
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,*) THETAMAX
+	  else if(TRIM(ARG) .EQ. '-seed') then
+	    J = J+1
+	    call get_command_argument(J,ARG)
+	    read(ARG,'(I9)') NSEED
+	  else if(TRIM(ARG) .EQ. '-test') then
+	    J = J+1
+	    call get_command_argument(J,ARG)
+	    read(ARG,'(L3)') TEST
         else if(TRIM(ARG) .EQ. '-h') then
           write(*,*) 'Options:'
           write(*,*) '-o           Output file name (default: out.dat)'
@@ -133,6 +145,8 @@ c...Parse given arguments
      +ents (default: 5)'
           write(*,*) '-theta_min   Minimum electron angle (default: 0)'
           write(*,*) '-theta_max   Maximum electron angle (default: 90)'
+	    write(*,*) '-seed        Seed for RNG, allowed values 0 <= see
+     +d <= 900000000 (default: 19780503)'
           goto 40
         endif
         J = J+1
@@ -146,9 +160,11 @@ c...Check that given theta values aren't backwards
       endif
 
 c...Print run parameters
-      write(*,300) OUTPUT,NGENEV,NPRINT,THETAMIN,THETAMAX
+      write(*,300) OUTPUT,NGENEV,NPRINT,THETAMIN,THETAMAX,NSEED
 
       open(2,file=OUTPUT)
+
+	MRPY(1) = NSEED
 
 c...Start PYTHIA stuff
       write(*,*) 'Starting Initialization'
@@ -158,23 +174,16 @@ c...Initialize everything, FIXT tells pythia that I have a beam hitting a fixed 
 
       write(*,*) 'Initialized'
 
-      write(*,*) 'Test MCHARGE(-2212):',MCHARGE(-2212)
-      write(*,*) 'Test MCHARGE(-2112):',MCHARGE(-2112)
-      write(*,*) 'Test MCHARGE(-321):',MCHARGE(-321)
-      write(*,*) 'Test MCHARGE(-211):',MCHARGE(-211)
-      write(*,*) 'Test MCHARGE(-13):',MCHARGE(-13)
-      write(*,*) 'Test MCHARGE(-11):',MCHARGE(-11)
-      write(*,*) 'Test MCHARGE(11):',MCHARGE(11)
-      write(*,*) 'Test MCHARGE(13):',MCHARGE(13)
-      write(*,*) 'Test MCHARGE(22):',MCHARGE(22)
-      write(*,*) 'Test MCHARGE(130):',MCHARGE(130)
-      write(*,*) 'Test MCHARGE(211):',MCHARGE(211)
-      write(*,*) 'Test MCHARGE(321):',MCHARGE(321)
-      write(*,*) 'Test MCHARGE(2112):',MCHARGE(2112)
-      write(*,*) 'Test MCHARGE(2212):',MCHARGE(2212)
-      write(*,*) 'Test MCHARGE(45):',MCHARGE(45)
+c...If the test option is set to be true then the values in the MCHARGES array
+c...will be printed to screen for test purposes. This option is not shown
+c...in the documention or in the help message
+	if(TEST) then
+	  call test_charge_array
+	endif
 
-c...Generate events
+	write(*,*) 'Starting Event Generation'
+
+c...Generate events, start of main loop
       do I=0,NGENEV
 
       if( MOD(I,NPRINT) .EQ. 0) then
@@ -229,10 +238,10 @@ c...Check to see if we have a neutron, if so then grab its parent
           NUMEV = NUMEV+1
         endif
 
-10    MEVENT = MEVENT+1
-      enddo
+10    enddo
+c...End of main loop
 
-      write(*,*) NUMEV, MEVENT
+      print*,"Total events in ",TRIM(OUTPUT),": ",NUMEV
 
 40    stop
       end

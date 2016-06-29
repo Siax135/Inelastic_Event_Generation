@@ -22,3 +22,25 @@ c in the array is the same as their pid
      +  1/            ! proton (2212)
 
       END
+
+	SUBROUTINE test_charge_array
+	integer MCHARGE(-2212:2212)
+	COMMON/PIDCHRG/MCHARGE
+
+	write(*,*) 'Test MCHARGE(-2212):',MCHARGE(-2212)
+      write(*,*) 'Test MCHARGE(-2112):',MCHARGE(-2112)
+      write(*,*) 'Test MCHARGE(-321):',MCHARGE(-321)
+      write(*,*) 'Test MCHARGE(-211):',MCHARGE(-211)
+      write(*,*) 'Test MCHARGE(-13):',MCHARGE(-13)
+      write(*,*) 'Test MCHARGE(-11):',MCHARGE(-11)
+      write(*,*) 'Test MCHARGE(11):',MCHARGE(11)
+      write(*,*) 'Test MCHARGE(13):',MCHARGE(13)
+      write(*,*) 'Test MCHARGE(22):',MCHARGE(22)
+      write(*,*) 'Test MCHARGE(130):',MCHARGE(130)
+      write(*,*) 'Test MCHARGE(211):',MCHARGE(211)
+      write(*,*) 'Test MCHARGE(321):',MCHARGE(321)
+      write(*,*) 'Test MCHARGE(2112):',MCHARGE(2112)
+      write(*,*) 'Test MCHARGE(2212):',MCHARGE(2212)
+      write(*,*) 'Test MCHARGE(45):',MCHARGE(45)
+
+	END
