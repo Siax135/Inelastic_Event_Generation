@@ -5,7 +5,7 @@
  and what the default setting for each are. 
 
  It should be noted, the main loop in this code tells pythia to generate a single event 
- per loop and then checks to see if the event produced is a ep -> e'pi<sup>+</sup>n event. If it is
+ per loop and then checks to see if the event produced is an ep -> e'pi<sup>+</sup>n event. If it is
  then it will store the event in the LUND format in the given output file. If it isn't then
  it just skips along to the next event and doesn't put anything in the output file. What
  this means is that even though the program may be told to generate 50,000 events as an argument
