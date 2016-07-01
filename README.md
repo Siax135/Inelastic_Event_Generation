@@ -1,8 +1,8 @@
 # Inelastic_Event_Generation
 
- To build this program simply run make which will produce the executable inelastic1.
- Running `./inelastic1 -h` will print a help meassage which shows the allowed options
- and what the default setting for each are. 
+ To build the event generation code simply run make in the Event_Generation directory 
+ which will produce the executable inelastic1. Running `./inelastic1 -h` will print a 
+ help meassage which shows the allowed options and what the default setting for each are. 
 
  It should be noted, the main loop in this code tells pythia to generate a single event 
  per loop and then checks to see if the event produced is an ep -> e'pi<sup>+</sup>n event. If it is
