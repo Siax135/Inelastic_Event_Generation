@@ -2,8 +2,8 @@
       integer I, MCHARGE(-2212:2212)
       COMMON/PIDCHRG/MCHARGE
 
-c Contains electric chrages for the listed particles. Their position
-c in the array is the same as their pid
+c...Contains electric charges for the listed particles. Their position
+c...in the array is the same as their pid
 
       DATA (MCHARGE(I),I=-2212,2212)/
      +  -1,99*999,    ! antiproton (-2212)
@@ -23,6 +23,8 @@ c in the array is the same as their pid
 
       END
 
+c...Test routine that shows that pid's are in the array and what
+c...charge is associated with them
 	SUBROUTINE test_charge_array
 	integer MCHARGE(-2212:2212)
 	COMMON/PIDCHRG/MCHARGE

@@ -56,7 +56,6 @@ c...Required variables
       MPARN = 0
       NUMEV = 0
       PARP(2) = 2D0
-c	MSTP(11) = 0
 
 c...Set argument defaults
       OUTPUT = 'out.dat'
@@ -109,34 +108,34 @@ c...Parse given arguments
         call get_command_argument(J,ARG)
         if(LEN_TRIM(ARG) .EQ. 0) exit
 
-        if(TRIM(ARG) .EQ. '-o') then
+        if(TRIM(ARG) .EQ. '-o') then  ! parse output file
           J = J+1
           call get_command_argument(J,OUTPUT)
-        else if(TRIM(ARG) .EQ. '-n') then
+        else if(TRIM(ARG) .EQ. '-n') then  ! parse num of events to generate
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,'(I10)') NGENEV
-        else if(TRIM(ARG) .EQ. '-n_print') then
+        else if(TRIM(ARG) .EQ. '-n_print') then  ! parse num of events between prints
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,'(I10)') NPRINT
-        else if(TRIM(ARG) .EQ. '-theta_min') then
+        else if(TRIM(ARG) .EQ. '-theta_min') then  ! parse electron theta min
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,*) THETAMIN
-        else if(TRIM(ARG) .EQ. '-theta_max') then
+        else if(TRIM(ARG) .EQ. '-theta_max') then  ! parse electron theta maax
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,*) THETAMAX
-	  else if(TRIM(ARG) .EQ. '-seed') then
+	  else if(TRIM(ARG) .EQ. '-seed') then  ! parse RNG seed
 	    J = J+1
 	    call get_command_argument(J,ARG)
 	    read(ARG,'(I9)') NSEED
-	  else if(TRIM(ARG) .EQ. '-test') then
+	  else if(TRIM(ARG) .EQ. '-test') then  ! parse debug option
 	    J = J+1
 	    call get_command_argument(J,ARG)
 	    read(ARG,'(L3)') TEST
-        else if(TRIM(ARG) .EQ. '-h') then
+        else if(TRIM(ARG) .EQ. '-h') then  ! parse help message
           write(*,*) 'Options:'
           write(*,*) '-o           Output file name (default: out.dat)'
           write(*,*) '-n           Number of events to generate (default
@@ -164,6 +163,7 @@ c...Print run parameters
 
       open(2,file=OUTPUT)
 
+c...Set RNG seed
 	MRPY(1) = NSEED
 
 c...Start PYTHIA stuff
@@ -176,7 +176,7 @@ c...Initialize everything, FIXT tells pythia that I have a beam hitting a fixed 
 
 c...If the test option is set to be true then the values in the MCHARGES array
 c...will be printed to screen for test purposes. This option is not shown
-c...in the documention or in the help message
+c...in the documention or in the help message as it is a debug option
 	if(TEST) then
 	  call test_charge_array
 	endif
@@ -202,12 +202,15 @@ c...Check to see if we have a neutron, if so then grab its parent
           endif
         enddo
 
+c...Check to see if neutron parent is a delta+, if not skip to next event
 20      if (K(MPARN,2) .NE. 2214) then
           NEU = .FALSE.
           NUELOC = -1
           goto 10
         endif
 
+c...Look through generated particles to find pi+ that has the the delta+
+c...parent as the neutron
         do MJ=1,N
           if (K(MJ,2) .EQ. 211 .AND. K(MJ,3) .EQ. MPARN) then
             MPILOC = MJ
@@ -215,6 +218,8 @@ c...Check to see if we have a neutron, if so then grab its parent
           endif
         enddo
 
+c...Find scattered electron and make sure its scattering angle is in
+c...an acceptable range
         do MJ=3,N
           if (K(MJ,2) .EQ. 11) then
             MELECLOC = MJ
@@ -223,6 +228,9 @@ c...Check to see if we have a neutron, if so then grab its parent
           endif
         enddo
 
+c...If a neutron and a pi+ have been found with the the same delta+ parent
+c...and the electron scattered at an acceptable angle then output the event
+c...in the LUND format to the output file
 30      if (NEU .AND. PION .AND. (ELECANG < THETAMAX .AND.
      +    ELECANG > THETAMIN)) then
           call pyedit(1)
