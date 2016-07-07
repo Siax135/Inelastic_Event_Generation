@@ -45,6 +45,7 @@ int genRows, ecRows, electronIndex = 0;
 int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
 double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
 double electronE, piPlusE = 0;
+double missingMass = 0;
 double hitX, hitY, hitZ = 0;
 double neutronPmag, hitMag = 0;
 double thetapq, momentum = 0;
@@ -52,6 +53,7 @@ double nde, dnde = 0;
 
 // variables for keeping track of relevant particles paths and hits
 Vector3D scatteredElectron;
+Vector3D scatteredPiPlus;
 Vector3D scatteredNeutron;
 Vector3D generatedNeutron;
 Vector3D ECHit;
@@ -78,6 +80,8 @@ boolean electronFound = false
 // constants
 final int BIN_NUM = 50;
 final double BEAM_ENERGY = 11.0;
+final double ELECTRON_MASS_IN_SQ = 0.0112203;
+final double PROTON_MASS_IN_SQ = 0.880351;
 //**********************************************************************************
 
 //* Geometry set-up ****************************************************************
@@ -100,8 +104,6 @@ for(int i = 0; i < 6; i++){
 //* Create histograms **************************************************************
 TDirectory histFile = new TDirectory();
 histFile.mkdir("neutrons");
-histFile.mkdir("electrons");
-histFile.mkdir("pi+");
 
 histFile.getDirectory("neutrons").add(new H1D("hthetapq", 100, 0, 10));
 H1D hthetapq = (H1D)histFile.getDirectory("neutrons").getObject("hthetapq");
@@ -118,6 +120,10 @@ hmomentumTotal.setXTitle("momentum (GeV/c)");
 histFile.getDirectory("neutrons").add(new H1D("hmomentumRec", BIN_NUM, 0, BEAM_ENERGY));
 H1D hmomentumRec = (H1D)histFile.getDirectory("neutrons").getObject("hmomentumRec");
 hmomentumRec.setXTitle("momentum (GeV/c)");
+
+histFile.getDirectory("neutrons").add(new H1D("hmissingMass", BIN_NUM, 0, 2.5));
+H1D hmissingMass = (H1D)histFile.getDirectory("neutrons").getObject("hmissingMass");
+hmissingMass.setXTitle("mass (GeV/c^2)");
 
 histFile.getDirectory("neutrons").add(new H2D("hNDE", BIN_NUM, 0, BEAM_ENERGY, 100, 0, 1));
 H2D hNDE = (H2D)histFile.getDirectory("neutrons").getObject("hNDE");
@@ -152,18 +158,20 @@ while(reader.hasEvent()){
     if(electronCount > 0 && neutronCount > 0 && piPlusCount > 0){
         // get information about the reconstruction in lund format and pass it to a scanner
         electronFound = false;
+        piPlusFound = false;
         recLund = recEvent.toLundString();
-	 // System.out.println(recLund);
+        System.out.println("Event: " + nevents);
+        System.out.println(recLund);
         electronSearch = new Scanner( recLund );
         piPlusSearch = new Scanner( recLund );
         numRecParticles = Integer.parseInt( electronSearch.next() );
         electronSearch.nextLine();
-        piPlusSearch.nextLine();
 
         // loop over each reconstructed particle looking for an electron
         for( int i = 0; i < numRecParticles; i++ ) {
             for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
                 electronInfo = electronSearch.next();
+                System.out.println(j + ": " + electronInfo);
             } // end loop jumping to pid
             recPID = Integer.parseInt(electronInfo);
             if( recPID == 11 ) { // check if current pid means we have an electron
@@ -180,31 +188,64 @@ while(reader.hasEvent()){
                 electronE = Double.parseDouble(electronInfo);
                 electronFound = true; // we found an electron
 
+                piPlusSearch.nextLine();
 
-				for( int k = 0; k < numRecParticles; k++ ) {
-            		for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
+                for( int k = 0; k < numRecParticles; k++ ) {
+                    for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
                 		piPlusInfo = piPlusSearch.next();
-            		} // end loop jumping to pid
-            		recPID = Integer.parseInt(piPlusInfoInfo);
-            		if( recPID == 211 ) { // check if current pid means we have a pi+
-                	for( int m = 0; m < 3; m++ ) { // jump to px for pi+
-                    	piPlusInfo = piPlusSearch.next();
-                	} // end loop to jump to px
-                	// get px, py, and pz from lund string
-                	piPlusPx = Double.parseDouble(piPlusInfo);
-                	piPlusInfo = piPlusSearch.next();
-                	piPlusPy = Double.parseDouble(piPlusInfo);
-                	piPlusInfo = piPlusSearch.next();
-                	piPlusPz = Double.parseDouble(piPlusInfo);
-                	piPlusInfo = piPlusSearch.next();
-                	piPlusE = Double.parseDouble(piPlusInfo);
-                	piPlusFound = true; // we found an pi+
-                	break;
-            	} // end check of the pid
+                    } // end loop jumping to pid
+                    recPID = Integer.parseInt(piPlusInfo);
+                    if( recPID == 211 ) { // check if current pid means we have a pi+
+                        for( int m = 0; m < 3; m++ ) { // jump to px for pi+
+                            piPlusInfo = piPlusSearch.next();
+                    } // end loop to jump to px
+                    // get px, py, and pz from lund string
+                    piPlusPx = Double.parseDouble(piPlusInfo);
+                    piPlusInfo = piPlusSearch.next();
+                    piPlusPy = Double.parseDouble(piPlusInfo);
+                    piPlusInfo = piPlusSearch.next();
+                    piPlusPz = Double.parseDouble(piPlusInfo);
+                    piPlusInfo = piPlusSearch.next();
+                    piPlusE = Double.parseDouble(piPlusInfo);
 
-            	piPlusSearch.nextLine(); // jump to next line if we didn't find an pi+
-          }
-        } // end loop through reconstructed particles
+
+
+
+
+                    scatteredElectron = new Vector3D(electronPx,electronPy,electronPz);
+                    scatteredPiPlus = new Vector3D(piPlusPx,piPlusPy,piPlusPz);
+
+                    missingMass = Math.sqrt(ELECTRON_MASS_IN_SQ + PROTON_MASS_IN_SQ - scatteredElectron.mag2() - scatteredPiPlus.mag2());
+
+                    hmissingMass.fill(missingMass);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//                    piPlusFound = true; // we found an pi+
+
+                   // break;
+                    } // end check of the pid
+                    piPlusSearch.nextLine(); // jump to next line if we didn't find an pi+
+                }
+                piPlusSearch = new Scanner(recLund);
+            } // end loop through reconstructed particles
+            electronSearch.nextLine();
+        }
 
        /* if(!electronFound){ // make sure we actually found a reconstructed electron
             skippedEvents++;
@@ -267,7 +308,19 @@ while(reader.hasEvent()){
 //        intersectionStatus = false;
     } // end if checking electron and neutron count */
 } // end loop over events
-/*
+
+TCanvas c1 = new TCanvas("c1","PhysicsAnalysis",1200,640,1,1);
+c1.cd(0);
+c1.draw(hmissingMass);
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
  
  
@@ -299,17 +352,7 @@ while(reader.hasEvent()){
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+ /*
  
  // calculate neutron detection efficiency and print run info to screen
 System.out.println("Num events: " + nevents + " Skipped events: " + skippedEvents);
