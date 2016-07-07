@@ -20,10 +20,11 @@ import org.jlab.clas12.dbdata.*;
 import org.jlab.clasrec.utils.*
 import org.jlab.geom.prim.*;
 import org.jlab.geom.detector.ec.ECFactory.*;
+import org.jlab.clas.detector.*;
 
 // open file
 EvioSource reader = new EvioSource();
-reader.open("/home/Siax/shared/nopcalData/neutrons_12-15_NOPCAL_Rec.0.evio");
+reader.open("/home/Siax/Linux_Shared/Pythia/e_pi_n_Rec2.0.evio");
 
 // create fitter to get data
 GenericKinematicFitter fitter = new GenericKinematicFitter(11.0);
@@ -41,7 +42,7 @@ Particle recNeutron;
 // various counters, indexes, and general information variables
 int nevents, nentries, nrec = 0;
 int genRows, ecRows, electronIndex = 0;
-int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount,neutronCount, electronCount = 0;
+int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
 double electronPx, electronPy, electronPz = 0;
 double hitX, hitY, hitZ = 0;
 double neutronPmag, hitMag = 0;
@@ -66,9 +67,9 @@ boolean intersectionStatus = false;
  // keep track of skipped events
 int skippedEvents = 0;
 
-// used to look for reconstructed electron info
-Scanner search;
-String recLund, electronInfo;
+// used to look for reconstructed electron and pi+ info
+Scanner electronSearch, piPlusSearch;
+String recLund, electronInfo, piPlusInfo;
 
 // used to tell if we found a reconstructed electron
 boolean electronFound = false
@@ -79,7 +80,7 @@ final double BEAM_ENERGY = 11.0;
 //**********************************************************************************
 
 //* Geometry set-up ****************************************************************
-ConstantProvider constants = DataBaseLoader.getConstantsEC();
+ConstantProvider constants = DataBaseLoader.getGeometryConstants(DetectorType.EC);
 ECDetector detector = new ECFactory().createDetectorCLAS(constants);
 
 sectors = detector.getAllSectors();
@@ -98,6 +99,8 @@ for(int i = 0; i < 6; i++){
 //* Create histograms **************************************************************
 TDirectory histFile = new TDirectory();
 histFile.mkdir("neutrons");
+histFile.mkdir("electrons");
+histFile.mkdir("pi+");
 
 histFile.getDirectory("neutrons").add(new H1D("hthetapq", 100, 0, 10));
 H1D hthetapq = (H1D)histFile.getDirectory("neutrons").getObject("hthetapq");
@@ -134,44 +137,68 @@ while(reader.hasEvent()){
     electronCount = Math.max(genElectronCount, recElectronCount);
 
     // get generated and reconstructed electron counts
+    genPiPlusCount = genEvent.countByPid(211);
+    recPiPlusCount = recEvent.countByPid(211);
+    piPlusCount = Math.max(genPiPlusCount, recPiPlusCount);
+
+    // get generated and reconstructed electron counts
     genNeutronCount = genEvent.countByPid(2112);
     recNeutronCount = recEvent.countByPid(2112);
     if(recNeutronCount > 0) System.out.println(nevents + ": " + recNeutronCount);
     neutronCount = Math.max(genNeutronCount, recNeutronCount);
 
     // make sure we have electrons and neutrons to analyze
-    if(electronCount > 0 && neutronCount > 0){
+    if(electronCount > 0 && neutronCount > 0 && piPlusCount > 0){
         // get information about the reconstruction in lund format and pass it to a scanner
         electronFound = false;
         recLund = recEvent.toLundString();
-        search = new Scanner( recLund );
-        numRecParticles = Integer.parseInt( search.next() );
-        search.nextLine();
+	 // System.out.println(recLund);
+        electronSearch = new Scanner( recLund );
+        piPlusSearch = new Scanner( recLund );
+        numRecParticles = Integer.parseInt( electronSearch.next() );
+        electronSearch.nextLine();
+        piPlusSearch.nextLine();
 
         // loop over each reconstructed particle looking for an electron
         for( int i = 0; i < numRecParticles; i++ ) {
             for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
-                electronInfo = search.next();
+                electronInfo = electronSearch.next();
+                piPlusInfo = piPlusSearch.next();
             } // end loop jumping to pid
             recPID = Integer.parseInt(electronInfo);
             if( recPID == 11 ) { // check if current pid means we have an electron
                 for( int k = 0; k < 3; k++ ) { // jump to px for electron
-                    electronInfo = search.next();
+                    electronInfo = electronSearch.next();
                 } // end loop to jump to px
                 // get px, py, and pz from lund string
                 electronPx = Double.parseDouble(electronInfo);
-                electronInfo = search.next();
+                electronInfo = electronSearch.next();
                 electronPy = Double.parseDouble(electronInfo);
-                electronInfo = search.next();
+                electronInfo = electronSearch.next();
                 electronPz = Double.parseDouble(electronInfo);
                 electronFound = true; // we found an electron
                 break;
             } // end check of the pid
 
-            search.nextLine(); // jump to next line if we didn't find an electron
+            if( recPID == 11 ) { // check if current pid means we have an electron
+                for( int k = 0; k < 3; k++ ) { // jump to px for electron
+                    electronInfo = electronSearch.next();
+                } // end loop to jump to px
+                // get px, py, and pz from lund string
+                electronPx = Double.parseDouble(electronInfo);
+                electronInfo = electronSearch.next();
+                electronPy = Double.parseDouble(electronInfo);
+                electronInfo = electronSearch.next();
+                electronPz = Double.parseDouble(electronInfo);
+                electronFound = true; // we found an electron
+                break;
+            } // end check of the pid
+
+            electronSearch.nextLine(); // jump to next line if we didn't find an electron
+            piPlusSearch.nextLine();
         } // end loop through reconstructed particles
 
-        if(!electronFound){ // make sure we actually found a reconstructed electron
+       /* if(!electronFound){ // make sure we actually found a reconstructed electron
             skippedEvents++;
             //nevents++;
             continue;
@@ -227,13 +254,56 @@ while(reader.hasEvent()){
                 hmomentumRec.fill(momentum);
                 break;
             } // end if checking thetapq
-        } // end loop over neutron candidates
+        } // end loop over neutron candidates */
         nevents++;
-        intersectionStatus = false;
-    } // end if checking electron and neutron count
+//        intersectionStatus = false;
+    } // end if checking electron and neutron count */
 } // end loop over events
+/*
 
-// calculate neutron detection efficiency and print run info to screen
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ // calculate neutron detection efficiency and print run info to screen
 System.out.println("Num events: " + nevents + " Skipped events: " + skippedEvents);
 nentries = hmomentumRec.getEntries();
 nde = (double) nentries/nevents;
@@ -255,4 +325,4 @@ for(int i = 0; i < BIN_NUM; i++){
 } // end loop over data
 
 // write histograms to file
-histFile.write("neutrons_12-15_Hist_NOPCAL.evio");
+histFile.write("neutrons_12-15_Hist_NOPCAL.evio");  */
