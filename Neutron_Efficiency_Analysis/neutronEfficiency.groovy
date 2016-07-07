@@ -43,7 +43,8 @@ Particle recNeutron;
 int nevents, nentries, nrec = 0;
 int genRows, ecRows, electronIndex = 0;
 int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
-double electronPx, electronPy, electronPz = 0;
+double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
+double electronE, piPlusE = 0;
 double hitX, hitY, hitZ = 0;
 double neutronPmag, hitMag = 0;
 double thetapq, momentum = 0;
@@ -163,7 +164,6 @@ while(reader.hasEvent()){
         for( int i = 0; i < numRecParticles; i++ ) {
             for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
                 electronInfo = electronSearch.next();
-                piPlusInfo = piPlusSearch.next();
             } // end loop jumping to pid
             recPID = Integer.parseInt(electronInfo);
             if( recPID == 11 ) { // check if current pid means we have an electron
@@ -176,26 +176,34 @@ while(reader.hasEvent()){
                 electronPy = Double.parseDouble(electronInfo);
                 electronInfo = electronSearch.next();
                 electronPz = Double.parseDouble(electronInfo);
-                electronFound = true; // we found an electron
-                break;
-            } // end check of the pid
-
-            if( recPID == 11 ) { // check if current pid means we have an electron
-                for( int k = 0; k < 3; k++ ) { // jump to px for electron
-                    electronInfo = electronSearch.next();
-                } // end loop to jump to px
-                // get px, py, and pz from lund string
-                electronPx = Double.parseDouble(electronInfo);
                 electronInfo = electronSearch.next();
-                electronPy = Double.parseDouble(electronInfo);
-                electronInfo = electronSearch.next();
-                electronPz = Double.parseDouble(electronInfo);
+                electronE = Double.parseDouble(electronInfo);
                 electronFound = true; // we found an electron
-                break;
-            } // end check of the pid
 
-            electronSearch.nextLine(); // jump to next line if we didn't find an electron
-            piPlusSearch.nextLine();
+
+				for( int k = 0; k < numRecParticles; k++ ) {
+            		for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
+                		piPlusInfo = piPlusSearch.next();
+            		} // end loop jumping to pid
+            		recPID = Integer.parseInt(piPlusInfoInfo);
+            		if( recPID == 211 ) { // check if current pid means we have a pi+
+                	for( int m = 0; m < 3; m++ ) { // jump to px for pi+
+                    	piPlusInfo = piPlusSearch.next();
+                	} // end loop to jump to px
+                	// get px, py, and pz from lund string
+                	piPlusPx = Double.parseDouble(piPlusInfo);
+                	piPlusInfo = piPlusSearch.next();
+                	piPlusPy = Double.parseDouble(piPlusInfo);
+                	piPlusInfo = piPlusSearch.next();
+                	piPlusPz = Double.parseDouble(piPlusInfo);
+                	piPlusInfo = piPlusSearch.next();
+                	piPlusE = Double.parseDouble(piPlusInfo);
+                	piPlusFound = true; // we found an pi+
+                	break;
+            	} // end check of the pid
+
+            	piPlusSearch.nextLine(); // jump to next line if we didn't find an pi+
+          }
         } // end loop through reconstructed particles
 
        /* if(!electronFound){ // make sure we actually found a reconstructed electron
