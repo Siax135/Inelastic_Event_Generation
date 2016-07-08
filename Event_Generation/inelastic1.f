@@ -37,7 +37,7 @@ c...Required variables
       integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,NGENEV
       integer NPRINT,NSEED
       integer MCHARGE(-2212:2212)
-      logical NEU,PION,TEST
+      logical NEU,PION,TEST, VERBOSE
       character ARG*32,OUTPUT*32
       real ELECANG, THETAMIN, THETAMAX
       double precision P(4000,5),V(4000,5)
@@ -64,6 +64,7 @@ c...Set argument defaults
       THETAMIN = 0
       THETAMAX = 90
 	NSEED = 19780503  ! default set by PYTHIA
+      VERBOSE = .FALSE.
 	TEST = .FALSE.
 
 c...Set up format for the LUND format
@@ -100,7 +101,7 @@ c...Set format to show given run parameters
      3 'Num events/print:',I10,/,
      4 'Theta min:',14X,F7.4,/,
      5 'Theta max:',15X,F7.4,/,
-     6 'RNG seed:',15X,I9)
+     6 'RNG seed:',15X,I9,/)
 
 c...Parse given arguments
       J = 1
@@ -135,6 +136,8 @@ c...Parse given arguments
 	    J = J+1
 	    call get_command_argument(J,ARG)
 	    read(ARG,'(L3)') TEST
+        else if(TRIM(ARG) .EQ. '-v') then  ! parse debug option
+          VERBOSE = .TRUE.
         else if(TRIM(ARG) .EQ. '-h') then  ! parse help message
           write(*,*) 'Options:'
           write(*,*) '-o           Output file name (default: out.dat)'
@@ -146,6 +149,8 @@ c...Parse given arguments
           write(*,*) '-theta_max   Maximum electron angle (default: 90)'
 	    write(*,*) '-seed        Seed for RNG, allowed values 0 <= see
      +d <= 900000000 (default: 19780503)'
+          write(*,*) '-v           Add this flag to set the output to be
+     + more verbose, this flag doesn''t take a following argument'
           goto 40
         endif
         J = J+1
@@ -233,6 +238,9 @@ c...and the electron scattered at an acceptable angle then output the event
 c...in the LUND format to the output file
 30      if (NEU .AND. PION .AND. (ELECANG < THETAMAX .AND.
      +    ELECANG > THETAMIN)) then
+          if(VERBOSE) then
+            call pylist(2)
+          endif
           call pyedit(1)
 
           write(2,100) N,1,1,0.000,0.000,0.000,0.000,0.000,0.000,0.000
