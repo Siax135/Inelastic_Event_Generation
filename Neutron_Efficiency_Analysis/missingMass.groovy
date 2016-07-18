@@ -36,7 +36,7 @@ PhysicsEvent genEvent;
 PhysicsEvent recEvent;
 
 // various counters, indexes, and general information variables
-int nevents = 0;
+int nevents = 1;
 int electronIndex, piPlusIndex = 0;
 int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
 double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
@@ -106,7 +106,8 @@ while(reader.hasEvent()){
             if( recPID == 11 ) { // check if current pid means we have an electron
 
                 // Uncomment line below to see the LUND string*******************************************************
-                //System.out.println(recLund);
+                System.out.println("Event: " + nevents);
+                System.out.println(recLund);
 
                 for( int k = 0; k < 3; k++ ) { // jump to px for electron
                     electronInfo = electronSearch.next();
@@ -154,7 +155,7 @@ while(reader.hasEvent()){
 
                     // Uncomment line below to see which electron is being paired with which pi+ and what the missing mass with that pairing is.
                     // If the below line is uncommented you should also uncomment line 109
-                    //System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
+                    System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
 
                     hmissingMass.fill(missingMass);
                     } // end check of the pi+ pid
@@ -164,8 +165,8 @@ while(reader.hasEvent()){
             } // end if checking the electron pid
             electronSearch.nextLine();
         } // end loop looking for electrons
-        nevents++;
     } // end if checking electron and neutron count */
+    nevents++;
 } // end loop over events
 
 // Show Histogram

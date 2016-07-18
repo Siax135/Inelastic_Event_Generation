@@ -41,11 +41,11 @@ Particle recNeutron;
 
 // various counters, indexes, and general information variables
 int nevents, nentries, nrec = 0;
-int genRows, ecRows, electronIndex = 0;
+int genRows, ecRows, electronIndex, piPlusIndex = 0;
 int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
 double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
 double electronE, piPlusE = 0;
-double missingMass = 0;
+double scatteredElectronMassSq, scatteredPiPlusMassSq, missingMass = 0;
 double hitX, hitY, hitZ = 0;
 double neutronPmag, hitMag = 0;
 double thetapq, momentum = 0;
@@ -121,7 +121,7 @@ histFile.getDirectory("neutrons").add(new H1D("hmomentumRec", BIN_NUM, 0, BEAM_E
 H1D hmomentumRec = (H1D)histFile.getDirectory("neutrons").getObject("hmomentumRec");
 hmomentumRec.setXTitle("momentum (GeV/c)");
 
-histFile.getDirectory("neutrons").add(new H1D("hmissingMass", BIN_NUM, 0, 2.5));
+histFile.getDirectory("neutrons").add(new H1D("hmissingMass", 300, 0, 1.5));
 H1D hmissingMass = (H1D)histFile.getDirectory("neutrons").getObject("hmissingMass");
 hmissingMass.setXTitle("mass (GeV/c^2)");
 
@@ -151,7 +151,7 @@ while(reader.hasEvent()){
     // get generated and reconstructed electron counts
     genNeutronCount = genEvent.countByPid(2112);
     recNeutronCount = recEvent.countByPid(2112);
-    if(recNeutronCount > 0) System.out.println(nevents + ": " + recNeutronCount);
+    //if(recNeutronCount > 0) System.out.println(nevents + ": " + recNeutronCount);
     neutronCount = Math.max(genNeutronCount, recNeutronCount);
 
     // make sure we have electrons and neutrons to analyze
@@ -160,8 +160,6 @@ while(reader.hasEvent()){
         electronFound = false;
         piPlusFound = false;
         recLund = recEvent.toLundString();
-        System.out.println("Event: " + nevents);
-        System.out.println(recLund);
         electronSearch = new Scanner( recLund );
         piPlusSearch = new Scanner( recLund );
         numRecParticles = Integer.parseInt( electronSearch.next() );
@@ -169,12 +167,18 @@ while(reader.hasEvent()){
 
         // loop over each reconstructed particle looking for an electron
         for( int i = 0; i < numRecParticles; i++ ) {
-            for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
+            electronIndex = Integer.parseInt( electronSearch.next() );
+            for( int j = 0; j < 3; j++ ) { // jump to pid in lund string
                 electronInfo = electronSearch.next();
-                System.out.println(j + ": " + electronInfo);
+                //System.out.println(j + ": " + electronInfo);
             } // end loop jumping to pid
             recPID = Integer.parseInt(electronInfo);
             if( recPID == 11 ) { // check if current pid means we have an electron
+
+
+                //System.out.println("Event: " + nevents);
+                System.out.println(recLund);
+
                 for( int k = 0; k < 3; k++ ) { // jump to px for electron
                     electronInfo = electronSearch.next();
                 } // end loop to jump to px
@@ -191,7 +195,8 @@ while(reader.hasEvent()){
                 piPlusSearch.nextLine();
 
                 for( int k = 0; k < numRecParticles; k++ ) {
-                    for( int j = 0; j < 4; j++ ) { // jump to pid in lund string
+                piPlusIndex = Integer.parseInt( piPlusSearch.next() );
+                    for( int j = 0; j < 3; j++ ) { // jump to pid in lund string
                 		piPlusInfo = piPlusSearch.next();
                     } // end loop jumping to pid
                     recPID = Integer.parseInt(piPlusInfo);
@@ -215,7 +220,12 @@ while(reader.hasEvent()){
                     scatteredElectron = new Vector3D(electronPx,electronPy,electronPz);
                     scatteredPiPlus = new Vector3D(piPlusPx,piPlusPy,piPlusPz);
 
-                    missingMass = Math.sqrt(ELECTRON_MASS_IN_SQ + PROTON_MASS_IN_SQ - scatteredElectron.mag2() - scatteredPiPlus.mag2());
+                    scatteredElectronMassSq = (electronE * electronE)-scatteredElectron.mag2();
+                    scatteredPiPlusMassSq = (piPlusE * piPlusE)-scatteredPiPlus.mag2();
+
+                    missingMass = ELECTRON_MASS_IN_SQ + PROTON_MASS_IN_SQ - scatteredElectronMassSq - scatteredPiPlusMassSq;
+
+                    System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
 
                     hmissingMass.fill(missingMass);
 

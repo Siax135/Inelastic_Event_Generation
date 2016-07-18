@@ -35,8 +35,9 @@ C...PYTHIA Commonblocks.
 
 c...Required variables
       integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,NGENEV
-      integer NPRINT,NSEED
+      integer NPRINT,NSEED,NCOUNT
       integer MCHARGE(-2212:2212)
+      double precision Q2,W,Q2MAX,Q2MIN,WMAX,WMIN
       logical NEU,PION,TEST, VERBOSE
       character ARG*32,OUTPUT*32
       real ELECANG, THETAMIN, THETAMAX
@@ -46,16 +47,47 @@ c...Required variables
       COMMON/PIDCHRG/MCHARGE
 
 
+c...For future reference, These are the relevant PYTHIA variables and their meaing
+c...N -> number of particle in the event record table for the most recently generated event
+c...P(I,1) -> momentum in the x-direction in GeV/c
+c...P(I,2) -> momentum in the y-direction in GeV/c
+c...P(I,3) -> momentum in the z-direction in GeV/c
+c...P(I,4) -> Energy in GeV
+c...P(I,5) -> mass in GeV/c^2
+c...K(I,2) -> PID
+c...K(I,3) -> line of parent particle
+
+
       SAVE /PYDAT1/,/PYDAT2/,/PYDAT3/,/PYDAT4/,/PYDATR/,/PYSUBS/,
      &/PYPARS/,/PYINT1/,/PYINT2/,/PYINT3/,/PYINT4/,/PYINT5/,
      &/PYINT6/,/PYINT7/,/PYMSSM/,/PYSSMT/,/PYMSRV/,/PYTCSM/,
      &/PYBINS/,/PYLH3P/,/PYLH3C/,/PIDCHRG/
 
+c...Set base value for various variables
       NEU = .FALSE.
       PION = .FALSE.
       MPARN = 0
       NUMEV = 0
-      PARP(2) = 2D0
+      NCOUNT = 0
+
+      Q2MAX = 0
+      Q2MIN = 50  ! just need this to be semi-large
+      WMAX = 0
+      WMIN = 50   ! also needed to be semi-large
+
+
+c...Set PYTHIA generation parameters
+      call PYGIVE('MSTJ(12)=0')   ! Don't allow for the production diquark-antidiquark pairs
+      call PYGIVE('PARP(2)=2D0')  ! minimum allowed CM energy in GeV
+
+c...Set PYTHIA kinematic cuts
+      call PYGIVE('CKIN(65)=3.1')   ! Q2 min incoming channel
+      call PYGIVE('CKIN(66)=18.0')  ! Q2 max incoming channel
+      call PYGIVE('CKIN(67)=3.1')   ! Q2 min outgoing channel
+      call PYGIVE('CKIN(68)=18.0')  ! Q2 max outgoing channel
+      call PYGIVE('CKIN(77)=0.9')    ! W min
+      call PYGIVE('CKIN(78)=2.0005') ! W max
+
 
 c...Set argument defaults
       OUTPUT = 'out.dat'
@@ -75,8 +107,8 @@ c...Set up format for the LUND format
      4 2X,F5.3,          ! Beam polarization
      5 2X,F5.3,          ! x
      6 1X,F5.3,          ! y
-     7 2X,F5.3,          ! W
-     8 1X,F5.3,          ! Q^2
+     7 2X,F8.3,          ! W
+     8 1X,F8.3,          ! Q^2
      9 2X,F5.3)          ! nu
 
 200   format(4X,I2,      ! Index
@@ -207,8 +239,12 @@ c...Check to see if we have a neutron, if so then grab its parent
           endif
         enddo
 
-c...Check to see if neutron parent is a delta+, if not skip to next event
-20      if (K(MPARN,2) .NE. 2214) then
+c...If the code gets to this line it means there wasn't a neutron so go to
+c...the end of the loop and generate another event.
+        goto 10
+
+c...Check to see if neutron parent is a delta+ or PYTHIA string, if not skip to next event
+20      if (.NOT.(K(MPARN,2) .NE. 2214 .OR. K(MPARN,2) .NE. 92)) then
           NEU = .FALSE.
           NUELOC = -1
           goto 10
@@ -241,9 +277,24 @@ c...in the LUND format to the output file
           if(VERBOSE) then
             call pylist(2)
           endif
+
+c...Calculate Q2 and W
+          Q2 = 4*11.00051*P(MELECLOC,4)*(SIN((ELECANG*(3.14159/180))/2)
+     + **2)
+          W = SQRT((P(2,5)**2)+(2*(11.00051-P(MELECLOC,4))*P(2,5))-Q2)
+
           call pyedit(1)
 
-          write(2,100) N,1,1,0.000,0.000,0.000,0.000,0.000,0.000,0.000
+c...Q2 and W range information for 3-particle events
+          if( N .LE. 3 ) then
+          NCOUNT = NCOUNT+1
+          Q2MAX = MAX(Q2MAX,Q2)
+          Q2MIN = MIN(Q2MIN,Q2)
+          WMAX = MAX(WMAX,W)
+          WMIN = MIN(WMIN,W)
+          endif
+
+          write(2,100) N,1,1,0.000,0.000,0.000,0.000,W,Q2,0.000
           do MJ=1,N
             write(2,200) MJ,MCHARGE(K(MJ,2)),1,K(MJ,2),K(MJ,3),0,
      +          P(MJ,1),P(MJ,2),P(MJ,3),P(MJ,4),
@@ -256,8 +307,15 @@ c...in the LUND format to the output file
 
 10    enddo
 c...End of main loop
+      if(VERBOSE) then
+        call pystat(1)
+      endif
 
       print*,"Total events in ",TRIM(OUTPUT),": ",NUMEV
+      print*,"Number of 3-particle events: ",NCOUNT
+      print*,"3-particle event ranges:"
+      print*,"Q2 max: ",Q2MAX," Q2 min: ",Q2MIN," W max: ",WMAX," W min:
+     + ",WMIN
 
 40    stop
       end
