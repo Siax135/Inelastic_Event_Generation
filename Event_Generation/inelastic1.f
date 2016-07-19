@@ -39,7 +39,8 @@ c...Required variables
       integer MCHARGE(-2212:2212)
       double precision Q2,W,Q2MAX,Q2MIN,WMAX,WMIN
       logical NEU,PION,TEST, VERBOSE
-      character ARG*32,OUTPUT*32
+      character ARG*32,OUTPUT*32,PAIRSTR*10
+      character Q2MXSTR1*20,Q2MNSTR1*20,Q2MXSTR2*20,Q2MNSTR2*20
       real ELECANG, THETAMIN, THETAMAX
       double precision P(4000,5),V(4000,5)
       integer N,NPAD,K(4000,5)
@@ -75,26 +76,17 @@ c...Set base value for various variables
       WMAX = 0
       WMIN = 50   ! also needed to be semi-large
 
-
-c...Set PYTHIA generation parameters
-      call PYGIVE('MSTJ(12)=0')   ! Don't allow for the production diquark-antidiquark pairs
-      call PYGIVE('PARP(2)=2D0')  ! minimum allowed CM energy in GeV
-
-c...Set PYTHIA kinematic cuts
-      call PYGIVE('CKIN(65)=3.1')   ! Q2 min incoming channel
-      call PYGIVE('CKIN(66)=18.0')  ! Q2 max incoming channel
-      call PYGIVE('CKIN(67)=3.1')   ! Q2 min outgoing channel
-      call PYGIVE('CKIN(68)=18.0')  ! Q2 max outgoing channel
-      call PYGIVE('CKIN(77)=0.9')    ! W min
-      call PYGIVE('CKIN(78)=2.0005') ! W max
-
-
 c...Set argument defaults
       OUTPUT = 'out.dat'
       NGENEV = 20
       NPRINT = 5
       THETAMIN = 0
       THETAMAX = 90
+      PAIRSTR = 'MSTJ(12)=0'
+      Q2MNSTR1 = 'CKIN(65)=3.1'
+      Q2MXSTR1 = 'CKIN(66)=18.0'
+      Q2MNSTR2 = 'CKIN(67)=3.1'
+      Q2MXSTR2 = 'CKIN(68)=18.0'
 	NSEED = 19780503  ! default set by PYTHIA
       VERBOSE = .FALSE.
 	TEST = .FALSE.
@@ -156,10 +148,20 @@ c...Parse given arguments
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,*) THETAMIN
-        else if(TRIM(ARG) .EQ. '-theta_max') then  ! parse electron theta maax
+        else if(TRIM(ARG) .EQ. '-theta_max') then  ! parse electron theta max
           J = J+1
           call get_command_argument(J,ARG)
           read(ARG,*) THETAMAX
+        else if(TRIM(ARG) .EQ. '-Q2_max') then  ! parse Q2 max
+          J = J+1
+          call get_command_argument(J,ARG)
+          Q2MXSTR1 = 'CKIN(66)='//ARG
+          Q2MXSTR2 = 'CKIN(68)='//ARG
+        else if(TRIM(ARG) .EQ. '-Q2_min') then  ! parse Q2 min
+          J = J+1
+          call get_command_argument(J,ARG)
+          Q2MNSTR1 = 'CKIN(65)='//ARG
+          Q2MNSTR2 = 'CKIN(67)='//ARG
 	  else if(TRIM(ARG) .EQ. '-seed') then  ! parse RNG seed
 	    J = J+1
 	    call get_command_argument(J,ARG)
@@ -168,8 +170,10 @@ c...Parse given arguments
 	    J = J+1
 	    call get_command_argument(J,ARG)
 	    read(ARG,'(L3)') TEST
-        else if(TRIM(ARG) .EQ. '-v') then  ! parse debug option
+        else if(TRIM(ARG) .EQ. '-v') then  ! parse verbose option
           VERBOSE = .TRUE.
+        else if(TRIM(ARG) .EQ. '-pair_pro') then  ! parse pair production option
+          PAIRSTR = 'MSTJ(12)=1'
         else if(TRIM(ARG) .EQ. '-h') then  ! parse help message
           write(*,*) 'Options:'
           write(*,*) '-o           Output file name (default: out.dat)'
@@ -179,6 +183,12 @@ c...Parse given arguments
      +ents (default: 5)'
           write(*,*) '-theta_min   Minimum electron angle (default: 0)'
           write(*,*) '-theta_max   Maximum electron angle (default: 90)'
+          write(*,*) '-Q2_min      Minimum Q2 value (default: 3.1)'
+          write(*,*) '-Q2_max      Maximum Q2 value, negative value here
+     +means Q2 max is inactive (default: 18.0)'
+          write(*,*) '-pair_pro    Add this flag to allow for diquark-an
+     +tidiquark production, this flag doesn''t take a following argument
+     +'
 	    write(*,*) '-seed        Seed for RNG, allowed values 0 <= see
      +d <= 900000000 (default: 19780503)'
           write(*,*) '-v           Add this flag to set the output to be
@@ -187,6 +197,18 @@ c...Parse given arguments
         endif
         J = J+1
       enddo
+
+c...Set PYTHIA generation parameters
+      call PYGIVE(PAIRSTR)   ! Don't allow for the production diquark-antidiquark pairs
+      call PYGIVE('PARP(2)=2D0')  ! minimum allowed CM energy in GeV
+
+c...Set PYTHIA kinematic cuts
+      call PYGIVE(Q2MNSTR1)   ! Q2 min incoming channel
+      call PYGIVE(Q2MXSTR1)  ! Q2 max incoming channel
+      call PYGIVE(Q2MNSTR2)   ! Q2 min outgoing channel
+      call PYGIVE(Q2MXSTR2)  ! Q2 max outgoing channel
+      call PYGIVE('CKIN(77)=0.9')    ! W min
+      call PYGIVE('CKIN(78)=2.0005') ! W max
 
 c...Check that given theta values aren't backwards
       if( THETAMAX < THETAMIN ) then
