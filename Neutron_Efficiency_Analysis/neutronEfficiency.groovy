@@ -24,7 +24,7 @@ import org.jlab.clas.detector.*;
 
 // open file
 EvioSource reader = new EvioSource();
-reader.open("/home/Siax/Linux_Shared/Pythia/e_pi_n_Rec2.0.evio");
+reader.open("/home/Siax/Linux_Shared/Pythia/e_pi_n3_Rec.0.evio");
 
 // create fitter to get data
 GenericKinematicFitter fitter = new GenericKinematicFitter(11.0);
@@ -40,7 +40,7 @@ Particle genElectron;
 Particle recNeutron;
 
 // various counters, indexes, and general information variables
-int nevents, nentries, nrec = 0;
+int nevents, nentries, nrec, nless = 0;
 int genRows, ecRows, electronIndex, piPlusIndex = 0;
 int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
 double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
@@ -48,7 +48,7 @@ double electronE, piPlusE = 0;
 double scatteredElectronMassSq, scatteredPiPlusMassSq, missingMass = 0;
 double hitX, hitY, hitZ = 0;
 double neutronPmag, hitMag = 0;
-double thetapq, momentum = 0;
+double thetapq, theta, momentum = 0;
 double nde, dnde = 0;
 
 // variables for keeping track of relevant particles paths and hits
@@ -80,8 +80,8 @@ boolean electronFound = false
 // constants
 final int BIN_NUM = 50;
 final double BEAM_ENERGY = 11.0;
-final double ELECTRON_MASS_IN_SQ = 0.0112203;
-final double PROTON_MASS_IN_SQ = 0.880351;
+final double ELECTRON_INITIAL_ENERGY = 11.0051;
+final double PROTON_INITIAL_ENERGY = 0.93827;
 //**********************************************************************************
 
 //* Geometry set-up ****************************************************************
@@ -124,6 +124,15 @@ hmomentumRec.setXTitle("momentum (GeV/c)");
 histFile.getDirectory("neutrons").add(new H1D("hmissingMass", 300, 0, 1.5));
 H1D hmissingMass = (H1D)histFile.getDirectory("neutrons").getObject("hmissingMass");
 hmissingMass.setXTitle("mass (GeV/c^2)");
+
+histFile.getDirectory("neutrons").add(new H1D("hmissingMassHerm", 300, 0, 6));
+H1D hmissingMassHerm = (H1D)histFile.getDirectory("neutrons").getObject("hmissingMassHerm");
+hmissingMassHerm.setXTitle("Missing Mass with cut ((GeV/c^2)^2)");
+
+histFile.getDirectory("neutrons").add(new H2D("hacceptance", BIN_NUM, 0, 50, 100, 0, 10));
+H2D hacceptance = (H2D)histFile.getDirectory("neutrons").getObject("hacceptance");
+hacceptance.setXTitle("theta (degree)");
+hacceptance.setYTitle("momentum (GeV/c)");
 
 histFile.getDirectory("neutrons").add(new H2D("hNDE", BIN_NUM, 0, BEAM_ENERGY, 100, 0, 1));
 H2D hNDE = (H2D)histFile.getDirectory("neutrons").getObject("hNDE");
@@ -177,7 +186,7 @@ while(reader.hasEvent()){
 
 
                 //System.out.println("Event: " + nevents);
-                System.out.println(recLund);
+                //System.out.println(recLund);
 
                 for( int k = 0; k < 3; k++ ) { // jump to px for electron
                     electronInfo = electronSearch.next();
@@ -203,47 +212,110 @@ while(reader.hasEvent()){
                     if( recPID == 211 ) { // check if current pid means we have a pi+
                         for( int m = 0; m < 3; m++ ) { // jump to px for pi+
                             piPlusInfo = piPlusSearch.next();
-                    } // end loop to jump to px
-                    // get px, py, and pz from lund string
-                    piPlusPx = Double.parseDouble(piPlusInfo);
-                    piPlusInfo = piPlusSearch.next();
-                    piPlusPy = Double.parseDouble(piPlusInfo);
-                    piPlusInfo = piPlusSearch.next();
-                    piPlusPz = Double.parseDouble(piPlusInfo);
-                    piPlusInfo = piPlusSearch.next();
-                    piPlusE = Double.parseDouble(piPlusInfo);
+                        } // end loop to jump to px
+                        // get px, py, and pz from lund string
+                        piPlusPx = Double.parseDouble(piPlusInfo);
+                        piPlusInfo = piPlusSearch.next();
+                        piPlusPy = Double.parseDouble(piPlusInfo);
+                        piPlusInfo = piPlusSearch.next();
+                        piPlusPz = Double.parseDouble(piPlusInfo);
+                        piPlusInfo = piPlusSearch.next();
+                        piPlusE = Double.parseDouble(piPlusInfo);
 
 
 
 
 
-                    scatteredElectron = new Vector3D(electronPx,electronPy,electronPz);
-                    scatteredPiPlus = new Vector3D(piPlusPx,piPlusPy,piPlusPz);
+                        // Create momentum vectors from electron and pi+ momentum components
+                        scatteredElectron = new Vector3D(electronPx,electronPy,electronPz);
+                        scatteredPiPlus = new Vector3D(piPlusPx,piPlusPy,piPlusPz);
 
-                    scatteredElectronMassSq = (electronE * electronE)-scatteredElectron.mag2();
-                    scatteredPiPlusMassSq = (piPlusE * piPlusE)-scatteredPiPlus.mag2();
+                        energyTerm = Math.pow(ELECTRON_INITIAL_ENERGY + PROTON_INITIAL_ENERGY - electronE - piPlusE, 2);
 
-                    missingMass = ELECTRON_MASS_IN_SQ + PROTON_MASS_IN_SQ - scatteredElectronMassSq - scatteredPiPlusMassSq;
+                        momentumTermVector = new Vector3D(0,0,11).sub(scatteredElectron).sub(scatteredPiPlus);
+                        momentumTerm = momentumTermVector.dot(momentumTermVector);
 
-                    System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
+                        // calculate missing mass
+                        missingMass = energyTerm - momentumTerm;
 
-                    hmissingMass.fill(missingMass);
+                        if(missingMass < 0.88){
+                            nless++;
+                            System.out.println("Event: " + nevents);
+                            System.out.println(recLund);
+                            //System.out.println("Electron: " + scatteredElectron.toString());
+                            //System.out.println("Pi+: " + scatteredPiPlus.toString());
+                            System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
+                        }
+
+                        hmissingMass.fill(missingMass);
+                        if(numRecParticles != 2 ) break;
+
+                        hmissingMassHerm.fill(missingMass);
 
 
+                        if( missingMass > 0.87 && missingMass < 0.89 ){
+                            System.out.println("In missing mass if, missing mass: " + missingMass + " event: "+ nevents);
+
+                            if(event.hasBank("ECRec::clusters")){ // make sure we have the ECRec::clusters bank
+                                System.out.println("has EC bank");
+                                ecBank = event.getBank("ECRec::clusters");
+                                ecRows = ecBank.rows();
+                            }else{ // if we don't have the bank then move on to the next event
+                                skippedEvents++;
+                                break;
+                            } // end if for the ECRec::clusters bank
+
+                            // calculate scattered neutron momentum
+                            scatteredNeutron = new Vector3D(-1*(electronPx+piPlusPx), -1*(electronPy+piPlusPy), (BEAM_ENERGY-electronPz-piPlusPz));
+                            momentum = scatteredNeutron.mag(); // store magnitude in GeV
+                            scatteredNeutron.scale(1000); // scale scatter neutron vector to MeV
+                            scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
+
+                            genBank = event.getBank("GenPart::true");
+                            generatedNeutron = new Vector3D(genBank.getDouble("px",1), genBank.getDouble("py",1), genBank.getDouble("pz",1))
+                            generatedNeutron.unit();
 
 
+                            // create a line representing the neutron's path and loop over EC sectors to see if the neutron would hit the sectors
+                            neutronPath = new Line3D( new Point3D(0,0,0), scatteredNeutron );
+                            for(int j = 0; j < 6 && !intersectionStatus; j++){
+                                intersectionStatus = ECfaces[i].hasIntersection(neutronPath);
+                            } // end loop over sectors to see if neutrons hit
 
+                            if(!intersectionStatus){ // if neutron wouldn't hit then skip event
+                                System.out.println("Missed");
+                                skippedEvents++;
+                                break;
+                            } // end if checking that the neutron doesn't miss
 
+                            hmomentumTotal.fill(momentum);
 
+                            // loop over neutron candidates
+                            for(int j = 0; j < ecRows; j++){
+                                // get hit coordinates and make a vector
+                                hitX = ecBank.getDouble("X",i);
+                                hitY = ecBank.getDouble("Y",i);
+                                hitZ = ecBank.getDouble("Z",i);
+                                ECHit = new Vector3D(hitX, hitY, hitZ);
 
+                                ECHit.unit(); // make hit vector a unit vector
 
+                                thetapq = Math.acos(scatteredNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate
+                                htheta.fill(thetapq);
+                                if(thetapq < 1.5) { // if angle is less than 1.5 degrees then call it a hit and move on to the next event
+                                    hthetapq.fill(thetapq);
+                                    hmomentumRec.fill(momentum);
+                                    System.out.println("Found Neutron")
 
+                                    theta = Math.acos(scatteredNeutron.z()/momentum)*(180/Math.PI);
+                                    hacceptance.fill(theta,momentum);
 
+                                    break;
+                                } // end if checking thetapq
+                            } // end loop over neutron candidates */
 
-
-
-
-
+                            intersectionStatus = false;
+                        }
 
 
 //                    piPlusFound = true; // we found an pi+
@@ -263,65 +335,21 @@ while(reader.hasEvent()){
             continue;
         } // end if for checking that we have a reconstructed electron
 
-        if(event.hasBank("ECRec::clusters")){ // make sure we have the ECRec::clusters bank
-            ecBank = event.getBank("ECRec::clusters");
-            ecRows = ecBank.rows();
-        }else{ // if we don't have the bank then move on to the next event
-            skippedEvents++;
-            // nevents++;
-            continue;
-        } // end if for the ECRec::clusters bank
-
-        // calculate scattered neutron momentum
-        scatteredNeutron = new Vector3D(-1*electronPx, -1*electronPy, (BEAM_ENERGY-electronPz));
-        momentum = scatteredNeutron.mag(); // store magnitude in GeV
-        scatteredNeutron.scale(1000); // scale scatter neutron vector to MeV
-        scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
-
-        genBank = event.getBank("GenPart::true");
-        generatedNeutron = new Vector3D(genBank.getDouble("px",1), genBank.getDouble("py",1), genBank.getDouble("pz",1))
-        generatedNeutron.unit();
-
-
-        // create a line representing the neutron's path and loop over EC sectors to see if the neutron would hit the sectors
-        neutronPath = new Line3D( new Point3D(0,0,0), generatedNeutron );
-        for(int i = 0; i < 6 && !intersectionStatus; i++){
-            intersectionStatus = ECfaces[i].hasIntersection(neutronPath);
-        } // end loop over sectors to see if neutrons hit
-
-        if(!intersectionStatus){ // if neutron wouldn't hit then skip event
-            skippedEvents++;
-            continue;
-        } // end if checking that the neutron doesn't miss
-
-        hmomentumTotal.fill(momentum);
-
-        // loop over neutron candidates
-        for(int i = 0; i < ecRows; i++){
-            // get hit coordinates and make a vector
-            hitX = ecBank.getDouble("X",i);
-            hitY = ecBank.getDouble("Y",i);
-            hitZ = ecBank.getDouble("Z",i);
-            ECHit = new Vector3D(hitX, hitY, hitZ);
-
-            ECHit.unit(); // make hit vector a unit vector
-            //ECHit.unit();
-            thetapq = Math.acos(generatedNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate
-            htheta.fill(thetapq);
-            if(thetapq < 1.5) { // if angle is less than 1.5 degrees then call it a hit and move on to the next event
-                hthetapq.fill(thetapq);
-                hmomentumRec.fill(momentum);
-                break;
-            } // end if checking thetapq
-        } // end loop over neutron candidates */
-        nevents++;
-//        intersectionStatus = false;
-    } // end if checking electron and neutron count */
+               nevents++;
+//        intersectionStatus = false; */
+    } // end if checking electron and neutron count
+    nevents++;
 } // end loop over events
+System.out.println("Events less than 0.88:" + nless);
 
-TCanvas c1 = new TCanvas("c1","PhysicsAnalysis",1200,640,1,1);
+TCanvas c1 = new TCanvas("c1","PhysicsAnalysis",1200,640,1,3);
 c1.cd(0);
 c1.draw(hmissingMass);
+c1.cd(1);
+c1.draw(hmissingMassHerm);
+c1.cd(2);
+c1.draw(hacceptance);
+
  
  
  

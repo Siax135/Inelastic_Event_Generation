@@ -37,9 +37,9 @@ PhysicsEvent recEvent;
 
 // various counters, indexes, and general information variables
 int nevents = 1;
-int electronIndex, piPlusIndex = 0;
+int electronIndex, piPlusIndex, otherParticlesIndex = 0;
 int genNeutronCount, recNeutronCount, genElectronCount, recElectronCount, genPiPlusCount, recPiPlusCount, neutronCount, electronCount, piPlusCount = 0;
-double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
+double electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz, otherParticlesPx, otherParticlesPy, otherParticlesPz = 0;
 double electronE, piPlusE = 0;
 double energyTerm, momentumTerm, missingMass = 0;
 
@@ -48,12 +48,15 @@ Vector3D scatteredElectron;
 Vector3D scatteredPiPlus;
 Vector3D momentumTermVector;
 
+Vector3D otherParticlesP = new Vector3D(0,0,0);
+double otherParticlesE = 0;
+
 // used to look for reconstructed electron and pi+ info
-Scanner electronSearch, piPlusSearch;
-String recLund, electronInfo, piPlusInfo;
+Scanner electronSearch, piPlusSearch, otherParticlesSearch;
+String genLund, electronInfo, piPlusInfo, otherParticlesInfo;
 
 // constants
-final Vector3D ELECTRON_INITIAL_P = new Vector3D(0,0,11);
+Vector3D ELECTRON_INITIAL_P; // = new Vector3D(0.0,0.0,11.0);
 final double ELECTRON_INITIAL_ENERGY = 11.00051;
 final double PROTON_INITIAL_ENERGY = 0.93827;
 //**********************************************************************************
@@ -64,9 +67,9 @@ histFile.mkdir("neutrons");
 
 histFile.getDirectory("neutrons").add(new H1D("hmissingMass", 300, 0, 6));
 H1D hmissingMass = (H1D)histFile.getDirectory("neutrons").getObject("hmissingMass");
-hmissingMass.setXTitle("Missing Mass ((GeV/c^2)^2)");
+hmissingMass.setXTitle("mass (GeV/c^2)");
 
-histFile.getDirectory("neutrons").add(new H1D("hmissingMassHerm", 300, 0, 6));
+histFile.getDirectory("neutrons").add(new H1D("hmissingMassHerm", 300, 0, 1.5));
 H1D hmissingMassHerm = (H1D)histFile.getDirectory("neutrons").getObject("hmissingMassHerm");
 hmissingMassHerm.setXTitle("Missing Mass ((GeV/c^2)^2)");
 //**********************************************************************************
@@ -93,13 +96,16 @@ while(reader.hasEvent()){
     recNeutronCount = recEvent.countByPid(2112);
     neutronCount = Math.max(genNeutronCount, recNeutronCount);
 
+    ELECTRON_INITIAL_P = new Vector3D(0,0,11);
+
+
     // make sure we have electrons, pi+'s, and neutrons to analyze
     if(electronCount > 0 && neutronCount > 0 && piPlusCount > 0){
-        //System.out.println("Running analysis");
         // get information about the reconstruction in lund format and pass it to a scanner
-        recLund = recEvent.toLundString();
-        electronSearch = new Scanner( recLund ); // scanner to look for electrons
-        piPlusSearch = new Scanner( recLund );   // scanner to look for pi+
+        genLund = genEvent.toLundString();
+        //System.out.println(genLund);
+        electronSearch = new Scanner( genLund ); // scanner to look for electrons
+        piPlusSearch = new Scanner( genLund );   // scanner to look for pi+
         numRecParticles = Integer.parseInt( electronSearch.next() );  // determine how many particles are in the LUND string
         electronSearch.nextLine();
 
@@ -113,8 +119,12 @@ while(reader.hasEvent()){
             if( recPID == 11 ) { // check if current pid means we have an electron
 
                 // Uncomment line below to see the LUND string*******************************************************
-                //System.out.println("Event: " + nevents);
-                //System.out.println(recLund);
+                //if(nevents == 2383){
+                   // System.out.println("Event: " + nevents);
+                    //System.out.println(genLund);
+                    //System.out.println();
+                    //System.out.println(recEvent.toLundString());
+                //}
 
                 for( int k = 0; k < 3; k++ ) { // jump to px for electron
                     electronInfo = electronSearch.next();
@@ -136,7 +146,9 @@ while(reader.hasEvent()){
                 		piPlusInfo = piPlusSearch.next();
                     } // end loop jumping to pid
                     recPID = Integer.parseInt(piPlusInfo);
+                    //if(nevents == 2383) System.out.println("Pre-if pid: " + recPID + " Index: " + piPlusIndex);
                     if( recPID == 211 ) { // check if current pid means we have a pi+
+                    //if(nevents == 2383) System.out.println("Post-if pid: " + recPID + " Index: " + piPlusIndex);
                         for( int m = 0; m < 3; m++ ) { // jump to px for pi+
                             piPlusInfo = piPlusSearch.next();
                     } // end loop to jump to px
@@ -153,30 +165,42 @@ while(reader.hasEvent()){
                     scatteredElectron = new Vector3D(electronPx,electronPy,electronPz);
                     scatteredPiPlus = new Vector3D(piPlusPx,piPlusPy,piPlusPz);
 
+
                     energyTerm = Math.pow(ELECTRON_INITIAL_ENERGY + PROTON_INITIAL_ENERGY - electronE - piPlusE, 2);
+
 
                     momentumTermVector = new Vector3D(0,0,11).sub(scatteredElectron).sub(scatteredPiPlus);
                     momentumTerm = momentumTermVector.dot(momentumTermVector);
 
-                    // calculate missing mass
                     missingMass = energyTerm - momentumTerm;
 
                     // Uncomment line below to see which electron is being paired with which pi+ and what the missing mass with that pairing is.
                     // If the below line is uncommented you should also uncomment line 109
-                    if(missingMass < 0.88){
-                        System.out.println("Event: " + nevents);
-                        System.out.println(recLund);
-                        //System.out.println("Electron: " + scatteredElectron.toString());
-                        //System.out.println("Pi+: " + scatteredPiPlus.toString());
-                        System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
-                    }
+//                    if( nevents == 2383 ) {
+//                        System.out.println("Electron in E: " + ELECTRON_INITIAL_ENERGY);
+//                        System.out.println("Proton in E: " + PROTON_INITIAL_ENERGY);
+//                        System.out.println("Electron In: " + ELECTRON_INITIAL_P.toString());
+//                        System.out.println("Electron Out: " + scatteredElectron.toString());
+//                        System.out.println("Final Vector: " + momentumTermVector.toString());
+//                        System.out.println("Energy Term: " + energyTerm + " Momentum Term: " + momentumTerm);
+//                        System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
+//                        System.out.println();
+//                    }
+
+                        if(missingMass < 0.88){
+                            System.out.println("Event: " + nevents);
+                            System.out.println(genLund);
+                            //System.out.println("Electron: " + scatteredElectron.toString());
+                            //System.out.println("Pi+: " + scatteredPiPlus.toString());
+                            System.out.println("Electron Index: " + electronIndex + " Pi+ Index: " + piPlusIndex + " Missing Mass: " + missingMass);
+                        }
 
                     hmissingMass.fill(missingMass);
-                    if(numRecParticles == 2 ) hmissingMassHerm.fill(missingMass);
+                    if(numRecParticles == 3 ) hmissingMassHerm.fill(missingMass);
                     } // end check of the pi+ pid
                     piPlusSearch.nextLine(); // jump to next line if we didn't find an pi+
                 } // end loop looking for pi+ particles
-                piPlusSearch = new Scanner(recLund);  // reset pi+ scanner so that if there are multiple electrons we can pair each of the pi+'s with the next electron as well
+                piPlusSearch = new Scanner(genLund);  // reset pi+ scanner so that if there are multiple electrons we can pair each of the pi+'s with the next electron as well
             } // end if checking the electron pid
             electronSearch.nextLine();
         } // end loop looking for electrons
