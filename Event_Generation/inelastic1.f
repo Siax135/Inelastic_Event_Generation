@@ -37,7 +37,7 @@ c...Required variables
       integer I,MJ,MPARN,NUMEV,NEULOC,MPILOC,MELECLOC,NGENEV
       integer NPRINT,NSEED,NCOUNT
       integer MCHARGE(-2212:2212)
-      double precision Q2,W,Q2MAX,Q2MIN,WMAX,WMIN
+      double precision Q2,W,Q2MAX,Q2MIN,WMAX,WMIN,PMAX,PMIN
       logical NEU,PION,TEST, VERBOSE
       character ARG*32,OUTPUT*32,PAIRSTR*10
       character Q2MXSTR1*20,Q2MNSTR1*20,Q2MXSTR2*20,Q2MNSTR2*20
@@ -75,6 +75,8 @@ c...Set base value for various variables
       Q2MIN = 50  ! just need this to be semi-large
       WMAX = 0
       WMIN = 50   ! also needed to be semi-large
+      PMAX = 0
+      PMIN = 50
 
 c...Set argument defaults
       OUTPUT = 'out.dat'
@@ -306,15 +308,26 @@ c...Calculate Q2 and W
           W = SQRT((P(2,5)**2)+(2*(11.00051-P(MELECLOC,4))*P(2,5))-Q2)
 
           call pyedit(1)
+          do MJ=1,N
+           if (K(MJ,2) .EQ. 2112) then
+             NEULOC = MJ
+
+             goto 50
+           endif
+          enddo
 
 c...Q2 and W range information for 3-particle events
-          if( N .LE. 3 ) then
+50          if( N .LE. 3 ) then
           NCOUNT = NCOUNT+1
           Q2MAX = MAX(Q2MAX,Q2)
           Q2MIN = MIN(Q2MIN,Q2)
           WMAX = MAX(WMAX,W)
           WMIN = MIN(WMIN,W)
+          PMAX = MAX(PMAX,P(NEULOC,4))
+          PMIN = MIN(PMIN,P(NEULOC,4))
           endif
+
+
 
           write(2,100) N,1,1,0.000,0.000,0.000,0.000,W,Q2,0.000
           do MJ=1,N
@@ -338,6 +351,7 @@ c...End of main loop
       print*,"3-particle event ranges:"
       print*,"Q2 max: ",Q2MAX," Q2 min: ",Q2MIN," W max: ",WMAX," W min:
      + ",WMIN
+      print*,"P max: ",PMAX," P min: ",PMIN
 
 40    stop
       end
