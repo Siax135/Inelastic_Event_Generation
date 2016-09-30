@@ -22,9 +22,13 @@ import org.jlab.geom.prim.*;
 import org.jlab.geom.detector.ec.ECFactory.*;
 import org.jlab.clas.detector.*;
 
+String inputFile = args[0];
+String caseNum = args[1];
+
 // open file
 EvioSource reader = new EvioSource();
-reader.open("/home/Siax/Linux_Shared/Pythia/e_pi_n3_Rec_NEW.0.evio");
+//reader.open("/home/Siax/Linux_Shared/Pythia/e_pi_n3_Rec_NEW.0.evio");
+reader.open(inputFile);
 
 // create fitter to get data
 GenericKinematicFitter fitter = new GenericKinematicFitter(11.0);
@@ -313,13 +317,13 @@ while(reader.hasEvent()){
 
 System.out.println("Events less than 0.88:" + nless);
 
-TCanvas c1 = new TCanvas("c1","PhysicsAnalysis",1200,640,1,3);
-c1.cd(0);
-c1.draw(hmissingMassHerm);
-c1.cd(1);
-c1.draw(hmissingMass);
-c1.cd(2);
-c1.draw(hacceptance);
+//TCanvas c1 = new TCanvas("c1","PhysicsAnalysis",1200,640,1,3);
+//c1.cd(0);
+//c1.draw(hmissingMassHerm);
+//c1.cd(1);
+//c1.draw(hmissingMass);
+//c1.cd(2);
+//c1.draw(hacceptance);
 
  
  
@@ -364,6 +368,7 @@ c1.draw(hacceptance);
 
  
  // calculate neutron detection efficiency and print run info to screen
+System.out.println("Case: " + caseNum);
 System.out.println("Num events: " + nevents + " Skipped events: " + skippedEvents);
 nentries = hmomentumRec.getEntries();
 nentriesTotal = hmomentumTotal.getEntries();
@@ -386,4 +391,4 @@ for(int i = 0; i < BIN_NUM; i++){
 } // end loop over data
 
 // write histograms to file
-//histFile.write("neutrons_12-15_Hist_NOPCAL.evio");
+histFile.write("e_pi_n_NDE_"+caseNum+".hipo");
