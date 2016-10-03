@@ -23,7 +23,7 @@ import org.jlab.geom.detector.ec.ECFactory.*;
 import org.jlab.clas.detector.*;
 
 String inputFile = args[0];
-String caseNum = args[1];
+//String caseNum = args[1];
 
 // open file
 EvioSource reader = new EvioSource();
@@ -368,7 +368,7 @@ System.out.println("Events less than 0.88:" + nless);
 
  
  // calculate neutron detection efficiency and print run info to screen
-System.out.println("Case: " + caseNum);
+//System.out.println("Case: " + caseNum);
 System.out.println("Num events: " + nevents + " Skipped events: " + skippedEvents);
 nentries = hmomentumRec.getEntries();
 nentriesTotal = hmomentumTotal.getEntries();
@@ -391,4 +391,4 @@ for(int i = 0; i < BIN_NUM; i++){
 } // end loop over data
 
 // write histograms to file
-histFile.write("e_pi_n_NDE_"+caseNum+".hipo");
+histFile.write("e_pi_n_NDE.evio");
