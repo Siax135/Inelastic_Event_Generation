@@ -225,7 +225,7 @@ c...Print run parameters
       open(2,file=OUTPUT)
 
 c...Set RNG seed
-	MRPY(1) = NSEED
+      MRPY(1) = NSEED
 
 c...Start PYTHIA stuff
       write(*,*) 'Starting Initialization'
@@ -238,20 +238,20 @@ c...Initialize everything, FIXT tells pythia that I have a beam hitting a fixed 
 c...If the test option is set to be true then the values in the MCHARGES array
 c...will be printed to screen for test purposes. This option is not shown
 c...in the documention or in the help message as it is a debug option
-	if(TEST) then
-	  call test_charge_array
-	endif
+      if(TEST) then
+        call test_charge_array
+      endif
 
-	write(*,*) 'Starting Event Generation'
+      write(*,*) 'Starting Event Generation'
 
 c...Generate events, start of main loop
       do I=0,NGENEV
 
-      if( MOD(I,NPRINT) .EQ. 0) then
-        write(*,*) 'Event: ',I
-      endif
+        if( MOD(I,NPRINT) .EQ. 0) then
+          write(*,*) 'Event: ',I
+        endif
 
-      call pyevnt
+        call pyevnt
 
 c...Check to see if we have a neutron, if so then grab its parent
         do MJ=1,N
@@ -317,14 +317,14 @@ c...Calculate Q2 and W
           enddo
 
 c...Q2 and W range information for 3-particle events
-50          if( N .LE. 3 ) then
-          NCOUNT = NCOUNT+1
-          Q2MAX = MAX(Q2MAX,Q2)
-          Q2MIN = MIN(Q2MIN,Q2)
-          WMAX = MAX(WMAX,W)
-          WMIN = MIN(WMIN,W)
-          PMAX = MAX(PMAX,P(NEULOC,4))
-          PMIN = MIN(PMIN,P(NEULOC,4))
+50        if( N .LE. 3 ) then
+            NCOUNT = NCOUNT+1
+            Q2MAX = MAX(Q2MAX,Q2)
+            Q2MIN = MIN(Q2MIN,Q2)
+            WMAX = MAX(WMAX,W)
+            WMIN = MIN(WMIN,W)
+            PMAX = MAX(PMAX,P(NEULOC,4))
+            PMIN = MIN(PMIN,P(NEULOC,4))
           endif
 
 
