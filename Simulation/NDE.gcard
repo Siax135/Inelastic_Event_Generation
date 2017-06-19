@@ -41,6 +41,8 @@
 	<option name="INTEGRATEDRAW" value="bst, ctof, htcc, ft_cal, ft_hodo, dc, ec, ftof_p1a, ftof_p1b, ftof_p2, pcal"/>
 	<option name="SAVE_ALL_MOTHERS" value="0"/>
 
+	<option name="RUNNO" value="11"/>
+
 	<option name="PHYSICS" value="FTFP_BERT + STD + Optical"/>
 
 	<option name="OUTPUT"   value="evio, NDE.evio"/>
