@@ -27,6 +27,7 @@ HipoDataEvent event;
 int nevents, nentries, nentriesTotal = 0;
 int ecRows, TOFrows = 0
 int chargeOne, chargeTwo = 0;
+int reconstructedSector, foundSector = -1;
 float electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
 float electronE, piPlusE = 0;
 float energyTerm, momentumTerm = 0;
@@ -110,10 +111,19 @@ histFile.getDir("neutrons").add("hmissingMassHerm", new H1F("hmissingMassHerm", 
 H1F hmissingMassHerm = (H1F)histFile.getObject("neutrons","hmissingMassHerm");
 hmissingMassHerm.setTitleX("Missing Mass with cut ((GeV/c^2)^2)");
 
+histFile.getDir("neutrons").add("hecSectors", new H1F("hecSectors", 6, 1, 6));
+H1F hecSectors = (H1F)histFile.getObject("neutrons","hecSectors");
+hecSectors.setTitleX("Hit Sector");
+
 histFile.getDir("neutrons").add("hacceptance", new H2F("hacceptance", BIN_NUM, 0, 50, 100, 0, 10));
 H2F hacceptance = (H2F)histFile.getObject("neutrons","hacceptance");
 hacceptance.setTitleX("theta (degree)");
 hacceptance.setTitleY("momentum (GeV/c)");
+
+histFile.getDir("neutrons").add("hhits", new H2F("hhits", 401, 0, 400, 401, 0, 400));
+H2F hhits = (H2F)histFile.getObject("neutrons","hhits");
+hhits.setTitleX("X");
+hhits.setTitleY("Y");
 
 histFile.getDir("neutrons").add("hNDE", new H2F("hNDE", BIN_NUM, 0, BEAM_ENERGY, 100, 0, 1));
 H2F hNDE = (H2F)histFile.getObject("neutrons","hNDE");
@@ -213,6 +223,7 @@ while(reader.hasEvent()){
         neutronPath = new Line3D( new Point3D(0,0,0), scatteredNeutron );
         for(int j = 0; j < 6 && !intersectionStatus; j++){ // loop over EC sectors to see if neutron hits
             intersectionStatus = ECfaces[j].hasIntersection(neutronPath);
+            if(intersectionStatus) reconstructedSector = j+1;
         } // end loop over sectors to see if neutrons hit
 
 
@@ -232,6 +243,7 @@ while(reader.hasEvent()){
             hitX = ecBank.getFloat("x",j);
             hitY = ecBank.getFloat("y",j);
             hitZ = ecBank.getFloat("z",j);
+            foundSector = (int)ecBank.getByte("sector",j);
             ECHit = new Vector3D(hitX, hitY, hitZ);
 
             scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
@@ -242,6 +254,13 @@ while(reader.hasEvent()){
             if(thetapq < 1.5) { // if angle is less than 1.5 degrees then call it a hit and move on to the next event
                 hthetapq.fill(thetapq);
                 hmomentumRec.fill(momentum);
+                hhits.fill(hitX, hitY);
+
+                if(foundSector==reconstructedSector){
+                    hecSectors.fill(foundSector);
+                } else {
+                    System.out.println("Found Sector and Reconstruced Sector not the same!");
+                }
 
                 theta = Math.acos(scatteredNeutron.z()/scatteredNeutron.mag())*(180/Math.PI);
                 hacceptance.fill(theta,momentum);
@@ -266,6 +285,8 @@ nentries = hmomentumRec.getEntries();
 nentriesTotal = hmomentumTotal.getEntries();
 nde = (float) nentries/nentriesTotal;
 dnde = nde*Math.sqrt(nde*(1-nde)/nentries);
+System.out.println("Reconstructed: " + nentriesTotal);
+System.out.println("Found: " + nentries);
 System.out.println("nde= " + nde + " +/- " + dnde);
 
 // get data from momentum histograms
@@ -283,4 +304,4 @@ for(int i = 0; i < BIN_NUM; i++){
 } // end loop over data
 
 // write histograms to file
-histFile.writeFile("e_pi_n_NDE.hipo");
+histFile.writeFile("nde_histograms.hipo");
