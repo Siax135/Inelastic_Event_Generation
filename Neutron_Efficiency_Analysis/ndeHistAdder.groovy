@@ -14,6 +14,7 @@ final float BEAM_ENERGY = 11.0;  // GeV
 // variables for dealing with input arguments
 String inputFileBase, numFilesString, numPrintString;
 int numFiles, numPrint;
+float ndeAtI, dndeAtI = 0;
 
 // if statement to deal with input arguments
 if(args.length < 2){ // if there aren't enough arguments to run show usage
@@ -79,11 +80,11 @@ hmomentumFound.setTitleX("momentum found neutrons(GeV/c)");
 
 histFileFinal.getDir("neutrons").add("hmissingMass", new H1F("hmissingMass", 150, 0, 1));
 H1F hmissingMass = (H1F)histFileFinal.getObject("neutrons","hmissingMass");
-hmissingMass.setTitleX("mass (GeV/c^2)");
+hmissingMass.setTitleX("missing mass with hermicity cut (GeV/c^2)");
 
 histFileFinal.getDir("neutrons").add("hmissingMassHerm", new H1F("hmissingMassHerm", 300, 0, 6));
 H1F hmissingMassHerm = (H1F)histFileFinal.getObject("neutrons","hmissingMassHerm");
-hmissingMassHerm.setTitleX("Missing Mass with cut ((GeV/c^2)^2)");
+hmissingMassHerm.setTitleX("Missing Mass (GeV/c^2)^2)");
 
 histFileFinal.getDir("neutrons").add("hecSectors", new H1F("hecSectors", 6, 1, 7));
 H1F hecSectors = (H1F)histFileFinal.getObject("neutrons","hecSectors");
@@ -200,8 +201,10 @@ float currentP = step/2;
 // loop over data from histograms and create NDE histogram
 for(int i = 0; i < BIN_NUM; i++){ 
     if(hmomentumRecData[i] != 0){
-        dndeAtI = Math.sqrt(hmomentumFoundData[i]-(Math.pow(hmomentumFoundData[i],2)/hmomentumRecData[i]));
-        hNDE.addPoint(currentP, hmomentumFoundData[i]/hmomentumRecData[i], 0, dndeAtI);
+        ndeAtI = hmomentumFoundData[i]/hmomentumRecData[i];
+        //dndeAtI = Math.sqrt(hmomentumFoundData[i]-(Math.pow(hmomentumFoundData[i],2)/hmomentumRecData[i]));
+        dndeAtI = ndeAtI*Math.sqrt(ndeAtI*(1-ndeAtI)/hmomentumRecData[i]);
+        hNDE.addPoint(currentP, ndeAtI, 0, dndeAtI);
         System.out.println("P: " + currentP + " NDE: " + (hmomentumFoundData[i]/hmomentumRecData[i] + " +/- " + dndeAtI));
     }
     currentP += step;
