@@ -64,8 +64,8 @@ H1F htheta = (H1F)histFileFinal.getObject("neutrons","htheta");
 htheta.setTitleX("thetapq (deg)");
 htheta.setLineColor(4);
 
-histFile.getDir("neutrons").add("hthetaGen", new H1F("hthetaGen", 100, 0, 10));
-H1F hthetaGen = (H1F)histFile.getObject("neutrons","hthetaGen");
+histFileFinal.getDir("neutrons").add("hthetaGen", new H1F("hthetaGen", 100, 0, 10));
+H1F hthetaGen = (H1F)histFileFinal.getObject("neutrons","hthetaGen");
 hthetaGen.setTitleX("thetapq (deg)");
 hthetaGen.setLineColor(2);
 
@@ -99,8 +99,8 @@ H2F hhits = (H2F)histFileFinal.getObject("neutrons","hhits");
 hhits.setTitleX("X");
 hhits.setTitleY("Y");
 
-histFile.getDir("neutrons").add("hNDE", new GraphErrors("hNDE"));
-GraphErrors hNDE = (GraphErrors)histFile.getObject("neutrons","hNDE");
+histFileFinal.getDir("neutrons").add("hNDE", new GraphErrors("hNDE"));
+GraphErrors hNDE = (GraphErrors)histFileFinal.getObject("neutrons","hNDE");
 hNDE.setTitleX("momentum (GeV/c)");
 hNDE.setTitleY("NDE");
 
@@ -187,7 +187,6 @@ for(int i = 1; i < numFiles; i++){
 	hecSectors.add(inputHecSectors); 
 	hacceptance.add(inputHacceptance); 
 	hhits.add(inputHhits); 
-	hNDE.add(inputHNDE); 
 }// end of for loop for summing files
 
 // get data from momentum histograms
