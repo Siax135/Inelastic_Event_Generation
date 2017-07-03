@@ -122,7 +122,7 @@ inputHistFile.readFile(fullFileName);
 // and initialize them to the data in the first file. 
 H1F inputHthetapq = (H1F)inputHistFile.getObject("neutrons","hthetapq");
 H1F inputHtheta = (H1F)inputHistFile.getObject("neutrons","htheta");
-H1F inputHthetaGen = (H1F)histFile.getObject("neutrons","hthetaGen");
+H1F inputHthetaGen = (H1F)inputHistFile.getObject("neutrons","hthetaGen");
 H1F inputHmomentumTotal = (H1F)inputHistFile.getObject("neutrons","hmomentumRec");
 H1F inputHmomentumRec = (H1F)inputHistFile.getObject("neutrons","hmomentumFound");
 H1F inputHmissingMass = (H1F)inputHistFile.getObject("neutrons","hmissingMass");
@@ -167,7 +167,7 @@ for(int i = 1; i < numFiles; i++){
 	// get histograms from file
 	inputHthetapq = (H1F)inputHistFile.getObject("neutrons","hthetapq");
 	inputHtheta = (H1F)inputHistFile.getObject("neutrons","htheta");
-	inputHthetaGen = (H1F)histFile.getObject("neutrons","hthetaGen");
+	inputHthetaGen = (H1F)inputHistFile.getObject("neutrons","hthetaGen");
 	inputHmomentumTotal = (H1F)inputHistFile.getObject("neutrons","hmomentumRec");
 	inputHmomentumRec = (H1F)inputHistFile.getObject("neutrons","hmomentumFound");
 	inputHmissingMass = (H1F)inputHistFile.getObject("neutrons","hmissingMass");
