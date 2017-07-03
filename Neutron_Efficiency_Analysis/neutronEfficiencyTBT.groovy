@@ -36,6 +36,7 @@ float missingMass = 0;
 float hitX, hitY, hitZ = 0;
 float thetapq, genThetapq, theta, momentum = 0;
 float nde, dnde = 0;
+float ndeAtI, dndeAtI = 0;
 
 // variables for keeping track of relevant particles paths and hits
 Vector3D scatteredElectron;
@@ -211,7 +212,7 @@ while(reader.hasEvent()){
     hmissingMassHerm.fill(missingMass);
 
     // If m^2 isn't around what it should be for a neutron then skip the event
-    if( missingMass > 0.87 && missingMass < 0.89 ) {
+    if( missingMass < 0.92 ) {
         hmissingMass.fill(missingMass);
 
         if(event.hasBank("ECAL::clusters")){ // make sure we have the ECRec::clusters bank
@@ -251,8 +252,13 @@ while(reader.hasEvent()){
                 genNeutronPz = genBank.getFloat("pz",j);
                 genNeutron = new Vector3D(genNeutronPx,genNeutronPy,genNeutronPz);
                 genNeutron.unit();
+                break;
             }
         }
+
+        scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
+        genThetapq = Math.acos(genNeutron.dot(scatteredNeutron))*(180/Math.PI);  
+        hthetaGen.fill(genThetapq);
 
         // loop over neutron candidates
         for(int j = 0; j < ecRows; j++){
@@ -263,13 +269,10 @@ while(reader.hasEvent()){
             foundSector = (int)ecBank.getByte("sector",j);
             ECHit = new Vector3D(hitX, hitY, hitZ);
 
-            scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
             ECHit.unit(); // make hit vector a unit vector
 
-            thetapq = Math.acos(scatteredNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate
-            genThetapq = Math.acos(genNeutron.dot(scatteredNeutron))*(180/Math.PI);    
+            thetapq = Math.acos(scatteredNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate 
             htheta.fill(thetapq);
-            hthetaGen.fill(genThetapq);
             if(thetapq < 1.5) { // if angle is less than 1.5 degrees then call it a hit and move on to the next event
                 hthetapq.fill(thetapq);
                 hmomentumFound.fill(momentum);
@@ -303,8 +306,8 @@ System.out.println("Num events: " + nevents + " Skipped events: " + skippedEvent
 nentries = hmomentumFound.getEntries();
 nentriesTotal = hmomentumRec.getEntries();
 nde = (float) nentries/nentriesTotal;
-dnde = Math.sqrt(nentries-(Math.pow(nentries,2)/nentriesTotal));
-//dnde = nde*Math.sqrt(nde*(1-nde)/nentries);
+//dnde = Math.sqrt(nentries-(Math.pow(nentries,2)/nentriesTotal));
+dnde = nde*Math.sqrt(nde*(1-nde)/nentriesTotal);
 System.out.println("Reconstructed: " + nentriesTotal);
 System.out.println("Found: " + nentries);
 System.out.println("Overall nde= " + nde + " +/- " + dnde);
@@ -320,8 +323,10 @@ float currentP = step/2;
 // loop over data from histograms and create NDE histogram
 for(int i = 0; i < BIN_NUM; i++){ 
     if(hmomentumRecData[i] != 0){
-        dndeAtI = Math.sqrt(hmomentumFoundData[i]-(Math.pow(hmomentumFoundData[i],2)/hmomentumRecData[i]));
-        hNDE.addPoint(currentP, hmomentumFoundData[i]/hmomentumRecData[i], 0, dndeAtI);
+        ndeAtI = hmomentumFoundData[i]/hmomentumRecData[i];
+        //dndeAtI = Math.sqrt(hmomentumFoundData[i]-(Math.pow(hmomentumFoundData[i],2)/hmomentumRecData[i]));
+        dndeAtI = ndeAtI*Math.sqrt(ndeAtI*(1-ndeAtI)/hmomentumRecData[i]);
+        hNDE.addPoint(currentP, ndeAtI, 0, dndeAtI);
         System.out.println("P: " + currentP + " NDE: " + (hmomentumFoundData[i]/hmomentumRecData[i] + " +/- " + dndeAtI));
     }
     currentP += step;
