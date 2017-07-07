@@ -56,7 +56,7 @@ System.out.println();
 System.out.print("Initializing...");
 
 
-HistInitializer inti = new HistInitializer();
+HistInitializer init = new HistInitializer();
 TDirectory histFileFinal = init.initializeHist();
 H1F[] histograms1D = init.get1DHist();
 H2F[] histograms2D = init.get2DHist();
