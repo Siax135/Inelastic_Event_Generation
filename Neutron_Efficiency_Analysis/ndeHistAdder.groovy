@@ -209,6 +209,9 @@ for(int i = 1; i < numFiles; i++){
 	histograms2D[Hist2D.hhits.ordinal()].add(inputHhits);  
 }// end of for loop for summing files
 
+nentriesTotal = histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries();
+nentriesTotalGen = histograms1D[Hist1D.hmomentumGen.ordinal()].getEntries();
+
 // get data from momentum histograms
 float[] hmomentumRecData = histograms1D[Hist1D.hmomentumRec.ordinal()].getData();
 float[] hmomentumFoundData = histograms1D[Hist1D.hmomentumFound.ordinal()].getData();
