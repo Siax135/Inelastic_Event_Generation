@@ -210,8 +210,8 @@ for(int i = 1; i < numFiles; i++){
 }// end of for loop for summing files
 
 // get data from momentum histograms
-float[] hmomentumRecData = hmomentumRec.getData();
-float[] hmomentumFoundData = hmomentumFound.getData();
+float[] hmomentumRecData = histograms1D[Hist1D.hmomentumRec.ordinal()].getData();
+float[] hmomentumFoundData = histograms1D[Hist1D.hmomentumFound.ordinal()].getData();
 
 float[] hmomentumGenData = histograms1D[Hist1D.hmomentumGen.ordinal()].getData();
 float[] hmomentumGenFoundData = histograms1D[Hist1D.hmomentumGenFound.ordinal()].getData();
