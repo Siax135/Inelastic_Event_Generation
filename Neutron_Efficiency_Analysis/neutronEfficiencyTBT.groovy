@@ -9,6 +9,7 @@ import org.jlab.geom.detector.base.*;
 import org.jlab.geom.prim.*;
 import org.jlab.detector.base.*;
 import org.jlab.io.hipo.*;
+import HistInitializer;
 
 String inputFile = args[0];
 
@@ -25,16 +26,20 @@ HipoDataEvent event;
 
 // various counters, indexes, and general information variables
 int nevents, nentries, nentriesTotal = 0;
+int genRecDiff = 0;
 int ecRows, TOFrows = 0
 int chargeOne, chargeTwo = 0;
-int reconstructedSector, foundSector = -1;
+int genSector = -1;
+int reconstructedSector = -1;
+int foundSector = -1;
 float electronPx, electronPy, electronPz, piPlusPx, piPlusPy, piPlusPz = 0;
 float genNeutronPx, genNeutronPy, genNeutronPz = 0;
 float electronE, piPlusE = 0;
 float energyTerm, momentumTerm = 0;
 float missingMass = 0;
 float hitX, hitY, hitZ = 0;
-float thetapq, genThetapq, theta, momentum = 0;
+float thetapq, genThetapq, genThetapq2, theta
+float momentum, genMomentum = 0;
 float nde, dnde = 0;
 float ndeAtI, dndeAtI = 0;
 
@@ -47,13 +52,13 @@ Vector3D momentumTermVector;
 Vector3D ECHit;
 
 // variables for setting up and using the CLAS12 geometry
-Line3D neutronPath;
+Line3D neutronPath, genNeutronPath;
 ArrayList sectors, superlayes, layers;
 ECSector sector;
 ECSuperlayer superlayer;
 ECLayer layer;
 Shape3D[] ECfaces = new Plane3D[6];
-boolean intersectionStatus = false;
+boolean intersectionStatus, genIntersectionStatus = false;
 
  // keep track of skipped events
 int skippedEvents = 0;
@@ -87,57 +92,11 @@ for(int i = 0; i < 6; i++){
 //**********************************************************************************
 
 //* Create histograms **************************************************************
-TDirectory histFile = new TDirectory();
-histFile.mkdir("neutrons");
-
-histFile.getDir("neutrons").add("hthetapq", new H1F("hthetapq", 100, 0, 10));
-H1F hthetapq = (H1F)histFile.getObject("neutrons","hthetapq");
-hthetapq.setTitleX("thetapq with cut (deg)");
-
-histFile.getDir("neutrons").add("htheta", new H1F("htheta", 100, 0, 10));
-H1F htheta = (H1F)histFile.getObject("neutrons","htheta");
-htheta.setTitleX("thetapq (deg)");
-htheta.setLineColor(4);
-
-histFile.getDir("neutrons").add("hthetaGen", new H1F("hthetaGen", 100, 0, 10));
-H1F hthetaGen = (H1F)histFile.getObject("neutrons","hthetaGen");
-hthetaGen.setTitleX("thetapq (deg)");
-hthetaGen.setLineColor(2);
-
-histFile.getDir("neutrons").add("hmomentumRec", new H1F("hmomentumRec", BIN_NUM, 0, BEAM_ENERGY));
-H1F hmomentumRec = (H1F)histFile.getObject("neutrons","hmomentumRec");
-hmomentumRec.setTitleX("momentum reconstructed neutrons(GeV/c)");
-
-histFile.getDir("neutrons").add("hmomentumFound", new H1F("hmomentumFound", BIN_NUM, 0, BEAM_ENERGY));
-H1F hmomentumFound = (H1F)histFile.getObject("neutrons","hmomentumFound");
-hmomentumFound.setTitleX("momentum found neutrons(GeV/c)");
-
-histFile.getDir("neutrons").add("hmissingMass", new H1F("hmissingMass", 150, 0, 1));
-H1F hmissingMass = (H1F)histFile.getObject("neutrons","hmissingMass");
-hmissingMass.setTitleX("missing mass with hermicity cut (GeV/c^2)");
-
-histFile.getDir("neutrons").add("hmissingMassHerm", new H1F("hmissingMassHerm", 300, 0, 6));
-H1F hmissingMassHerm = (H1F)histFile.getObject("neutrons","hmissingMassHerm");
-hmissingMassHerm.setTitleX("Missing Mass ((GeV/c^2)^2)");
-
-histFile.getDir("neutrons").add("hecSectors", new H1F("hecSectors", 6, 1, 7));
-H1F hecSectors = (H1F)histFile.getObject("neutrons","hecSectors");
-hecSectors.setTitleX("Hit Sector");
-
-histFile.getDir("neutrons").add("hacceptance", new H2F("hacceptance", BIN_NUM, 0, 50, 100, 0, 10));
-H2F hacceptance = (H2F)histFile.getObject("neutrons","hacceptance");
-hacceptance.setTitleX("theta (degree)");
-hacceptance.setTitleY("momentum (GeV/c)");
-
-histFile.getDir("neutrons").add("hhits", new H2F("hhits", 821, -410, 410, 961, -480, 480));
-H2F hhits = (H2F)histFile.getObject("neutrons","hhits");
-hhits.setTitleX("X");
-hhits.setTitleY("Y");
-
-histFile.getDir("neutrons").add("hNDE", new GraphErrors("hNDE"));
-GraphErrors hNDE = (GraphErrors)histFile.getObject("neutrons","hNDE");
-hNDE.setTitleX("momentum (GeV/c)");
-hNDE.setTitleY("NDE");
+HistInitializer init = new HistInitializer();
+TDirectory histFile = init.initializeHist(); //new TDirectory();
+H1F[] histograms1D = init.get1DHist();
+H2F[] histograms2D = init.get2DHist();
+GraphErrors[] graphs = init.getGraphs();
 //**********************************************************************************
 
 //loop over events
@@ -189,6 +148,30 @@ while(reader.hasEvent()){
         continue;
     } // end if to check which charge is which
 
+    // calculate scattered neutron 3-momentum
+    scatteredNeutron = new Vector3D(-1*(electronPx+piPlusPx), -1*(electronPy+piPlusPy), (BEAM_ENERGY-electronPz-piPlusPz));
+    momentum = scatteredNeutron.mag(); // store magnitude in GeV
+    //scatteredNeutron.scale(1000); // scale scatter neutron vector to MeV
+    scatteredNeutron.unit();
+
+    //System.out.println("Scattered neutron: " + scatteredNeutron.toString());
+
+    genBank = event.getBank("MC::Particle");
+    for(int j = 0; j < genBank.rows(); j++){
+        if(genBank.getInt("pid",j) == 2112){
+            genNeutronPx = genBank.getFloat("px",j);
+            genNeutronPy = genBank.getFloat("py",j);
+            genNeutronPz = genBank.getFloat("pz",j);
+            genNeutron = new Vector3D(genNeutronPx,genNeutronPy,genNeutronPz);
+            genMomentum = genNeutron.mag();
+            genNeutron.unit();
+            break;
+        }
+    }
+
+    genThetapq = Math.acos(genNeutron.dot(scatteredNeutron))*(180/Math.PI);
+    histograms1D[Hist1D.hthetaGen2.ordinal()].fill(genThetapq);
+
     // 3-momentum of scattered charged particles
     scatteredElectron = new Vector3D(electronPx, electronPy, electronPz);
     scatteredPiPlus = new Vector3D(piPlusPx, piPlusPy, piPlusPz);
@@ -209,11 +192,11 @@ while(reader.hasEvent()){
     // calculate m^2
     missingMass = energyTerm - momentumTerm;
 
-    hmissingMassHerm.fill(missingMass);
+    histograms1D[Hist1D.hmissingMassHerm.ordinal()].fill(missingMass);
 
     // If m^2 isn't around what it should be for a neutron then skip the event
     if( missingMass < 0.92 ) {
-        hmissingMass.fill(missingMass);
+        histograms1D[Hist1D.hmissingMass.ordinal()].fill(missingMass);
 
         if(event.hasBank("ECAL::clusters")){ // make sure we have the ECRec::clusters bank
             ecBank = event.getBank("ECAL::clusters");
@@ -224,41 +207,49 @@ while(reader.hasEvent()){
             continue;
         } // end if for the ECRec::clusters bank
 
-        // calculate scattered neutron 3-momentum
-        scatteredNeutron = new Vector3D(-1*(electronPx+piPlusPx), -1*(electronPy+piPlusPy), (BEAM_ENERGY-electronPz-piPlusPz));
-        momentum = scatteredNeutron.mag(); // store magnitude in GeV
-        scatteredNeutron.scale(1000); // scale scatter neutron vector to MeV
-
         neutronPath = new Line3D( new Point3D(0,0,0), scatteredNeutron );
+        genNeutronPath = new Line3D( new Point3D(0,0,0), genNeutron);
+       // System.out.println("Event: " + nevents);
         for(int j = 0; j < 6 && !intersectionStatus; j++){ // loop over EC sectors to see if neutron hits
+            //System.out.println("Reconstructed Status: " + intersectionStatus + " Sector: " + reconstructedSector);
             intersectionStatus = ECfaces[j].hasIntersection(neutronPath);
             if(intersectionStatus) reconstructedSector = j+1;
         } // end loop over sectors to see if neutrons hit
 
+        for(int j = 0; j < 6 && !genIntersectionStatus; j++){ // loop over EC sectors to see if neutron hits
+            //System.out.println("Generated Status: " + genIntersectionStatus + " Sector: " + genSector);
+            genIntersectionStatus = ECfaces[j].hasIntersection(genNeutronPath);
+            if(genIntersectionStatus) genSector = j+1;
+        } // end loop over sectors to see if neutrons hit
 
-        if(!intersectionStatus){ // if neutron wouldn't hit then skip event
+        if(reconstructedSector != genSector){
+            if(intersectionStatus == false && genIntersectionStatus == true){
+                System.out.println("Generated neutron in event " + nevents + " hit sector " + genSector + " but reconstructed neutron didn't!");
+            }else if(intersectionStatus == true && genIntersectionStatus == false){
+                System.out.println("Reconstructed neutron in event " + nevents + " hit sector " + reconstructedSector + " but generated neutron didn't!");
+            }else{
+                System.out.println("Generated neutron in event " + nevents + " hit sector " + genSector + " but reconstructed neutron hit sector " + reconstructedSector);
+            }
+            genRecDiff++;
+        }
+        //System.out.println();
+
+        if(!intersectionStatus && !genIntersectionStatus){ // if neutron wouldn't hit then skip event
+            intersectionStatus = false;
+            genIntersectionStatus = false;
+            reconstructedSector = -1;
+            genSector = -1;
             skippedEvents++;
             nevents++;
             continue;
         } // end if checking that the neutron doesn't miss
 
-        hmomentumRec.fill(momentum);
+        if(intersectionStatus) histograms1D[Hist1D.hmomentumRec.ordinal()].fill(momentum);
+        if(genIntersectionStatus) histograms1D[Hist1D.hmomentumGen.ordinal()].fill(genMomentum);
 
-        genBank = event.getBank("MC::Particle");
-        for(int j = 0; j < genBank.rows(); j++){
-            if(genBank.getInt("pid",j) == 2112){
-                genNeutronPx = genBank.getFloat("px",j);
-                genNeutronPy = genBank.getFloat("py",j);
-                genNeutronPz = genBank.getFloat("pz",j);
-                genNeutron = new Vector3D(genNeutronPx,genNeutronPy,genNeutronPz);
-                genNeutron.unit();
-                break;
-            }
-        }
-
-        scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
-        genThetapq = Math.acos(genNeutron.dot(scatteredNeutron))*(180/Math.PI);  
-        hthetaGen.fill(genThetapq);
+        //scatteredNeutron.unit(); // make scattered neutron momentum vector a unit vector
+        //genThetapq2 = Math.acos(genNeutron.dot(scatteredNeutron))*(180/Math.PI);  
+        histograms1D[Hist1D.hthetaGen.ordinal()].fill(genThetapq);
 
         // loop over neutron candidates
         for(int j = 0; j < ecRows; j++){
@@ -271,29 +262,33 @@ while(reader.hasEvent()){
 
             ECHit.unit(); // make hit vector a unit vector
 
-            thetapq = Math.acos(scatteredNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate 
-            htheta.fill(thetapq);
-            if(thetapq < 1.5) { // if angle is less than 1.5 degrees then call it a hit and move on to the next event
-                hthetapq.fill(thetapq);
-                hmomentumFound.fill(momentum);
-                hhits.fill(hitX, hitY);
-
-                if(foundSector==reconstructedSector){
-                    hecSectors.fill(foundSector);
-                } else {
-                    System.out.println("Found Sector and Reconstruced Sector not the same!");
+            if(foundSector == genSector){
+                genThetapq2 = Math.acos(genNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate 
+                if(genThetapq < 1.5){ 
+                    histograms1D[Hist1D.hmomentumGenFound.ordinal()].fill(genMomentum);
+                    genSector = -1;
                 }
+            }
 
-                theta = Math.acos(scatteredNeutron.z()/scatteredNeutron.mag())*(180/Math.PI);
-                hacceptance.fill(theta,momentum);
+            if(foundSector == reconstructedSector){
+                thetapq = Math.acos(scatteredNeutron.dot(ECHit))*(180/Math.PI); // calculate angle between scattered neutron and neutron hit candidate 
+                histograms1D[Hist1D.htheta.ordinal()].fill(thetapq);
+                if(thetapq < 1.5) { // if angle is less than 1.5 degrees then call it a hit and move on to the next event
+                    histograms1D[Hist1D.hthetapq.ordinal()].fill(thetapq);
+                    histograms1D[Hist1D.hmomentumFound.ordinal()].fill(momentum);
+                    histograms2D[Hist2D.hhits.ordinal()].fill(hitX,hitY);
+                    histograms1D[Hist1D.hecSectors.ordinal()].fill(foundSector);
 
-                break;
-            } // end if checking thetapq
-
-
+                    theta = Math.acos(scatteredNeutron.z()/scatteredNeutron.mag())*(180/Math.PI);
+                    histograms2D[Hist2D.hacceptance.ordinal()].fill(theta,momentum);
+                    reconstructedSector = -1;
+                } // end if checking thetapq
+            }
         }
-
         intersectionStatus = false;
+        genIntersectionStatus = false;
+        reconstructedSector = -1;
+        genSector = -1;
     } else {
         skippedEvents++;
     }
@@ -303,18 +298,29 @@ while(reader.hasEvent()){
  
  // calculate neutron detection efficiency and print run info to screen
 System.out.println("Num events: " + nevents + " Skipped events: " + skippedEvents);
-nentries = hmomentumFound.getEntries();
-nentriesTotal = hmomentumRec.getEntries();
+System.out.println("Num differences between generated and reconstructed neutrons: " + genRecDiff);
+nentries = histograms1D[Hist1D.hmomentumFound.ordinal()].getEntries();
+nentriesTotal = histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries();
 nde = (float) nentries/nentriesTotal;
-//dnde = Math.sqrt(nentries-(Math.pow(nentries,2)/nentriesTotal));
 dnde = nde*Math.sqrt(nde*(1-nde)/nentriesTotal);
 System.out.println("Reconstructed: " + nentriesTotal);
 System.out.println("Found: " + nentries);
 System.out.println("Overall nde= " + nde + " +/- " + dnde);
 
+nentriesGen = histograms1D[Hist1D.hmomentumGenFound.ordinal()].getEntries();
+nentriesTotalGen = histograms1D[Hist1D.hmomentumGen.ordinal()].getEntries();
+ndeGen = (float) nentriesGen/nentriesTotalGen;
+dndeGen = Math.sqrt(ndeGen*(1-ndeGen)*nentriesTotalGen)/nentriesTotalGen;
+System.out.println("Gen Rec: " + nentriesGen);
+System.out.println("Gen Found: " + nentriesTotalGen);
+System.out.println("Overall gen nde= " + ndeGen + " +/- " + dndeGen);
+
 // get data from momentum histograms
-float[] hmomentumRecData = hmomentumRec.getData();
-float[] hmomentumFoundData = hmomentumFound.getData();
+float[] hmomentumRecData = histograms1D[Hist1D.hmomentumRec.ordinal()].getData();
+float[] hmomentumFoundData = histograms1D[Hist1D.hmomentumFound.ordinal()].getData();
+
+float[] hmomentumGenData = histograms1D[Hist1D.hmomentumGen.ordinal()].getData();
+float[] hmomentumGenFoundData = histograms1D[Hist1D.hmomentumGenFound.ordinal()].getData();
 
 // calculate steps between bins
 float step = BEAM_ENERGY/BIN_NUM;
@@ -324,10 +330,15 @@ float currentP = step/2;
 for(int i = 0; i < BIN_NUM; i++){ 
     if(hmomentumRecData[i] != 0){
         ndeAtI = hmomentumFoundData[i]/hmomentumRecData[i];
-        //dndeAtI = Math.sqrt(hmomentumFoundData[i]-(Math.pow(hmomentumFoundData[i],2)/hmomentumRecData[i]));
-        dndeAtI = ndeAtI*Math.sqrt(ndeAtI*(1-ndeAtI)/hmomentumRecData[i]);
-        hNDE.addPoint(currentP, ndeAtI, 0, dndeAtI);
-        System.out.println("P: " + currentP + " NDE: " + (hmomentumFoundData[i]/hmomentumRecData[i] + " +/- " + dndeAtI));
+        dndeAtI = Math.sqrt(ndeAtI*(1-ndeAtI)*nentriesTotal)/nentriesTotal;
+        graphs[Graph.hNDE.ordinal()].addPoint(currentP, ndeAtI, 0, dndeAtI);
+        System.out.println("P: " + currentP + " NDE: " + ndeAtI + " +/- " + dndeAtI);
+    }
+    if(hmomentumGenData[i] != 0){
+        ndeGenAtI = hmomentumGenFoundData[i]/hmomentumGenData[i];
+        dndeGenAtI = Math.sqrt(ndeGenAtI*(1-ndeGenAtI)*nentriesTotalGen)/nentriesTotalGen;
+        graphs[Graph.hNDEGen.ordinal()].addPoint(currentP, ndeGenAtI, 0, dndeGenAtI);
+        System.out.println("P Gen: " + currentP + " NDE Gen: " + ndeGenAtI + " +/- " + dndeGenAtI);
     }
     currentP += step;
 } // end loop over data
