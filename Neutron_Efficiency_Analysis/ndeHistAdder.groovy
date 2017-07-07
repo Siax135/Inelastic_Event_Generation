@@ -211,6 +211,7 @@ for(int i = 1; i < numFiles; i++){
 
 nentriesTotal = histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries();
 nentriesTotalGen = histograms1D[Hist1D.hmomentumGen.ordinal()].getEntries();
+System.out.println("Total: " + nentriesTotal + " Total Gen: " + nentriesTotalGen);
 
 // get data from momentum histograms
 float[] hmomentumRecData = histograms1D[Hist1D.hmomentumRec.ordinal()].getData();
