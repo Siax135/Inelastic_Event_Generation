@@ -17,6 +17,8 @@ String inputFileBase, numFilesString, numPrintString;
 int numFiles, numPrint;
 float ndeAtI, dndeAtI = 0;
 float ndeGenAtI, dndeGenAtI = 0;
+int nentriesTotal = 0;
+int nentriesTotalGen = 0;
 
 // if statement to deal with input arguments
 if(args.length < 2){ // if there aren't enough arguments to run show usage
@@ -142,6 +144,8 @@ H1F inputHecSectors = (H1F)inputHistFile.getObject("neutrons","hecSectors");
 H2F inputHacceptance = (H2F)inputHistFile.getObject("neutrons","hacceptance");
 H2F inputHhits = (H2F)inputHistFile.getObject("neutrons","hhits");
 
+System.out.println("Before add: " + histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries());
+
 // add histogram data to total
 histograms1D[Hist1D.hthetapq.ordinal()].add(inputHthetapq); 
 histograms1D[Hist1D.htheta.ordinal()].add(inputHtheta); 
@@ -156,6 +160,8 @@ histograms1D[Hist1D.hmissingMassHerm.ordinal()].add(inputHmissingMassHerm);
 histograms1D[Hist1D.hecSectors.ordinal()].add(inputHecSectors); 
 histograms2D[Hist2D.hacceptance.ordinal()].add(inputHacceptance); 
 histograms2D[Hist2D.hhits.ordinal()].add(inputHhits);  
+
+System.out.println("After add: " + histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries());
 
 // for loop to sum over files
 for(int i = 1; i < numFiles; i++){
@@ -209,9 +215,14 @@ for(int i = 1; i < numFiles; i++){
 	histograms2D[Hist2D.hhits.ordinal()].add(inputHhits);  
 }// end of for loop for summing files
 
-nentriesTotal = histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries();
-nentriesTotalGen = histograms1D[Hist1D.hmomentumGen.ordinal()].getEntries();
+for(int i = 0; i < BIN_NUM; i++){
+	nentriesTotal += histograms1D[Hist1D.hmomentumRec.ordinal()].getDataY(i);
+	nentriesTotalGen += histograms1D[Hist1D.hmomentumGen.ordinal()].getDataY(i);
+}
+
 System.out.println("Total: " + nentriesTotal + " Total Gen: " + nentriesTotalGen);
+System.out.println("At rec 3: " + histograms1D[Hist1D.hmomentumRec.ordinal()].getDataY(3));
+System.out.println("At found 3: " + histograms1D[Hist1D.hmomentumFound.ordinal()].getDataY(3));
 
 // get data from momentum histograms
 float[] hmomentumRecData = histograms1D[Hist1D.hmomentumRec.ordinal()].getData();
@@ -230,7 +241,7 @@ for(int i = 0; i < BIN_NUM; i++){
         ndeAtI = hmomentumFoundData[i]/hmomentumRecData[i];
         dndeAtI = Math.sqrt(ndeAtI*(1-ndeAtI)*nentriesTotal)/nentriesTotal;
         graphs[Graph.hNDE.ordinal()].addPoint(currentP, ndeAtI, 0, dndeAtI);
-        System.out.println("P: " + currentP + " NDE: " + ndeAtI + " +/- " + dndeAtI);
+        System.out.println("i: " + i + " P: " + currentP + " NDE: " + ndeAtI + " +/- " + dndeAtI);
     }
     if(hmomentumGenData[i] != 0){
         ndeGenAtI = hmomentumGenFoundData[i]/hmomentumGenData[i];
