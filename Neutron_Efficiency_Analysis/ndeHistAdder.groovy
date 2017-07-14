@@ -1,24 +1,21 @@
+//= REQUIRED ADDER CODE ==========================================================================================
+// All code enclosed by the equal signs is required for this adder to work and should not be changed if used 
+// to add histograms from another analysis. 
+
 import org.jlab.groot.data.*;
 import org.jlab.groot.ui.*;
 import java.lang.Integer;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import HistInitializer;
+import HistHandler;
 
 //constants
 final String FILE_SUFFIX = ".hipo"
-final int BIN_NUM = 50;
-final float BEAM_ENERGY = 11.0;  // GeV
 
 //* Input Argument Stuff *****************************************************************************************
-
 // variables for dealing with input arguments
 String inputFileBase, numFilesString, numPrintString;
 int numFiles, numPrint;
-float ndeAtI, dndeAtI = 0;
-float ndeGenAtI, dndeGenAtI = 0;
-int nentriesTotal = 0;
-int nentriesTotalGen = 0;
 
 // if statement to deal with input arguments
 if(args.length < 2){ // if there aren't enough arguments to run show usage
@@ -46,7 +43,6 @@ if(args.length < 2){ // if there aren't enough arguments to run show usage
 	numPrint = Integer.parseInt(numPrintString);
 } // end if for input arguments
 
-
 System.out.println("File base name set to: " + inputFileBase);
 System.out.println("Number of files to be added: " + numFiles);
 System.out.println("Files between prints: " + numPrint);
@@ -57,62 +53,11 @@ System.out.println();
 //* Set up hist file for summed histograms to be stored in *******************************************************
 System.out.print("Initializing...");
 
-
-HistInitializer init = new HistInitializer();
-TDirectory histFileFinal = init.initializeHist();
-H1F[] histograms1D = init.get1DHist();
-H2F[] histograms2D = init.get2DHist();
-GraphErrors[] graphs = init.getGraphs();
-// histFileFinal.mkdir("neutrons");
-
-// histFileFinal.getDir("neutrons").add("hthetapq", new H1F("hthetapq", 100, 0, 10));
-// H1F hthetapq = (H1F)histFileFinal.getObject("neutrons","hthetapq");
-// hthetapq.setTitleX("thetapq with cut (deg)");
-
-// histFileFinal.getDir("neutrons").add("htheta", new H1F("htheta", 100, 0, 10));
-// H1F htheta = (H1F)histFileFinal.getObject("neutrons","htheta");
-// htheta.setTitleX("thetapq (deg)");
-// htheta.setLineColor(4);
-
-// histFileFinal.getDir("neutrons").add("hthetaGen", new H1F("hthetaGen", 100, 0, 10));
-// H1F hthetaGen = (H1F)histFileFinal.getObject("neutrons","hthetaGen");
-// hthetaGen.setTitleX("thetapq (deg)");
-// hthetaGen.setLineColor(2);
-
-// histFileFinal.getDir("neutrons").add("hmomentumRec", new H1F("hmomentumRec", BIN_NUM, 0, BEAM_ENERGY));
-// H1F hmomentumRec = (H1F)histFileFinal.getObject("neutrons","hmomentumRec");
-// hmomentumRec.setTitleX("momentum reconstructed neutrons(GeV/c)");
-
-// histFileFinal.getDir("neutrons").add("hmomentumFound", new H1F("hmomentumFound", BIN_NUM, 0, BEAM_ENERGY));
-// H1F hmomentumFound = (H1F)histFileFinal.getObject("neutrons","hmomentumFound");
-// hmomentumFound.setTitleX("momentum found neutrons(GeV/c)");
-
-// histFileFinal.getDir("neutrons").add("hmissingMass", new H1F("hmissingMass", 150, 0, 1));
-// H1F hmissingMass = (H1F)histFileFinal.getObject("neutrons","hmissingMass");
-// hmissingMass.setTitleX("missing mass with hermicity cut (GeV/c^2)");
-
-// histFileFinal.getDir("neutrons").add("hmissingMassHerm", new H1F("hmissingMassHerm", 300, 0, 6));
-// H1F hmissingMassHerm = (H1F)histFileFinal.getObject("neutrons","hmissingMassHerm");
-// hmissingMassHerm.setTitleX("Missing Mass (GeV/c^2)^2)");
-
-// histFileFinal.getDir("neutrons").add("hecSectors", new H1F("hecSectors", 6, 1, 7));
-// H1F hecSectors = (H1F)histFileFinal.getObject("neutrons","hecSectors");
-// hecSectors.setTitleX("Hit Sector");
-
-// histFileFinal.getDir("neutrons").add("hacceptance", new H2F("hacceptance", BIN_NUM, 0, 50, 100, 0, 10));
-// H2F hacceptance = (H2F)histFileFinal.getObject("neutrons","hacceptance");
-// hacceptance.setTitleX("theta (degree)");
-// hacceptance.setTitleY("momentum (GeV/c)");
-
-// histFileFinal.getDir("neutrons").add("hhits", new H2F("hhits", 821, -410, 410, 961, -480, 480));
-// H2F hhits = (H2F)histFileFinal.getObject("neutrons","hhits");
-// hhits.setTitleX("X");
-// hhits.setTitleY("Y");
-
-// histFileFinal.getDir("neutrons").add("hNDE", new GraphErrors("hNDE"));
-// GraphErrors hNDE = (GraphErrors)histFileFinal.getObject("neutrons","hNDE");
-// hNDE.setTitleX("momentum (GeV/c)");
-// hNDE.setTitleY("NDE");
+HistHandler handler = new HistHandler();
+TDirectory histFileFinal = handler.initializeHist();
+H1F[] histograms1D = handler.get1DHist();
+H2F[] histograms2D = handler.get2DHist();
+GraphErrors[] graphs = handler.getGraphs();
 
 System.out.println("Success");
 System.out.println();
@@ -124,44 +69,11 @@ String fullFileName = inputFileBase + "0000" + FILE_SUFFIX;
 
 System.out.println("Starting addition with file " + fullFileName);
 
-// open initial file
-TDirectory inputHistFile = new TDirectory();
-inputHistFile.readFile(fullFileName);
+// Use HistHandler to read first input file
+HistHandler inputHandler = new HistHandler(fullFileName);
 
-// declare histograms objects that will be used to store data from files that need to be summed
-// and initialize them to the data in the first file. 
-H1F inputHthetapq = (H1F)inputHistFile.getObject("neutrons","hthetapq");
-H1F inputHtheta = (H1F)inputHistFile.getObject("neutrons","htheta");
-H1F inputHthetaGen = (H1F)inputHistFile.getObject("neutrons","hthetaGen");
-H1F inputHthetaGen2 = (H1F)inputHistFile.getObject("neutrons","hthetaGen2");
-H1F inputHmomentumRec = (H1F)inputHistFile.getObject("neutrons","hmomentumRec");
-H1F inputHmomentumGen = (H1F)inputHistFile.getObject("neutrons","hmomentumGen");
-H1F inputHmomentumFound = (H1F)inputHistFile.getObject("neutrons","hmomentumFound");
-H1F inputHmomentumGenFound = (H1F)inputHistFile.getObject("neutrons","hmomentumGenFound");
-H1F inputHmissingMass = (H1F)inputHistFile.getObject("neutrons","hmissingMass");
-H1F inputHmissingMassHerm = (H1F)inputHistFile.getObject("neutrons","hmissingMassHerm");
-H1F inputHecSectors = (H1F)inputHistFile.getObject("neutrons","hecSectors");
-H2F inputHacceptance = (H2F)inputHistFile.getObject("neutrons","hacceptance");
-H2F inputHhits = (H2F)inputHistFile.getObject("neutrons","hhits");
-
-System.out.println("Before add: " + histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries());
-
-// add histogram data to total
-histograms1D[Hist1D.hthetapq.ordinal()].add(inputHthetapq); 
-histograms1D[Hist1D.htheta.ordinal()].add(inputHtheta); 
-histograms1D[Hist1D.hthetaGen.ordinal()].add(inputHthetaGen);
-histograms1D[Hist1D.hthetaGen2.ordinal()].add(inputHthetaGen2);
-histograms1D[Hist1D.hmomentumRec.ordinal()].add(inputHmomentumRec);
-histograms1D[Hist1D.hmomentumGen.ordinal()].add(inputHmomentumGen); 
-histograms1D[Hist1D.hmomentumFound.ordinal()].add(inputHmomentumFound);
-histograms1D[Hist1D.hmomentumGenFound.ordinal()].add(inputHmomentumGenFound); 
-histograms1D[Hist1D.hmissingMass.ordinal()].add(inputHmissingMass); 
-histograms1D[Hist1D.hmissingMassHerm.ordinal()].add(inputHmissingMassHerm); 
-histograms1D[Hist1D.hecSectors.ordinal()].add(inputHecSectors); 
-histograms2D[Hist2D.hacceptance.ordinal()].add(inputHacceptance); 
-histograms2D[Hist2D.hhits.ordinal()].add(inputHhits);  
-
-System.out.println("After add: " + histograms1D[Hist1D.hmomentumRec.ordinal()].getEntries());
+// Add histograms in input Handler to histograms in initial handler
+handler.add(inputHandler);
 
 // for loop to sum over files
 for(int i = 1; i < numFiles; i++){
@@ -181,52 +93,59 @@ for(int i = 1; i < numFiles; i++){
 
 	if(i%numPrint == 0) System.out.println("Reading file " + fullFileName);
 
-	// read in file
-	inputHistFile.readFile(fullFileName);
-
-	// get histograms from file
-	inputHthetapq = (H1F)inputHistFile.getObject("neutrons","hthetapq");
-	inputHtheta = (H1F)inputHistFile.getObject("neutrons","htheta");
-	inputHthetaGen = (H1F)inputHistFile.getObject("neutrons","hthetaGen");
-	inputHthetaGen2 = (H1F)inputHistFile.getObject("neutrons","hthetaGen2");
-	inputHmomentumRec = (H1F)inputHistFile.getObject("neutrons","hmomentumRec");
-	inputHmomentumGen = (H1F)inputHistFile.getObject("neutrons","hmomentumGen");
-	inputHmomentumFound = (H1F)inputHistFile.getObject("neutrons","hmomentumFound");
-	inputHmomentumGenFound = (H1F)inputHistFile.getObject("neutrons","hmomentumGenFound");
-	inputHmissingMass = (H1F)inputHistFile.getObject("neutrons","hmissingMass");
-	inputHmissingMassHerm = (H1F)inputHistFile.getObject("neutrons","hmissingMassHerm");
-	inputHecSectors = (H1F)inputHistFile.getObject("neutrons","hecSectors");
-	inputHacceptance = (H2F)inputHistFile.getObject("neutrons","hacceptance");
-	inputHhits = (H2F)inputHistFile.getObject("neutrons","hhits");
-
-	// add histogram data to total
-	histograms1D[Hist1D.hthetapq.ordinal()].add(inputHthetapq); 
-	histograms1D[Hist1D.htheta.ordinal()].add(inputHtheta); 
-	histograms1D[Hist1D.hthetaGen.ordinal()].add(inputHthetaGen);
-	histograms1D[Hist1D.hthetaGen2.ordinal()].add(inputHthetaGen2);
-	histograms1D[Hist1D.hmomentumRec.ordinal()].add(inputHmomentumRec);
-	histograms1D[Hist1D.hmomentumGen.ordinal()].add(inputHmomentumGen); 
-	histograms1D[Hist1D.hmomentumFound.ordinal()].add(inputHmomentumFound);
-	histograms1D[Hist1D.hmomentumGenFound.ordinal()].add(inputHmomentumGenFound); 
-	histograms1D[Hist1D.hmissingMass.ordinal()].add(inputHmissingMass); 
-	histograms1D[Hist1D.hmissingMassHerm.ordinal()].add(inputHmissingMassHerm); 
-	histograms1D[Hist1D.hecSectors.ordinal()].add(inputHecSectors); 
-	histograms2D[Hist2D.hacceptance.ordinal()].add(inputHacceptance); 
-	histograms2D[Hist2D.hhits.ordinal()].add(inputHhits);  
+	// Read new file into the inputHandler and add its histogram data to the histograms in the initial handler
+	inputHandler = new HistHandler(fullFileName);
+	handler.add(inputHandler); 
 }// end of for loop for summing files
+//****************************************************************************************************************
+//================================================================================================================
 
+
+//* Calculate NDE from generated and reconstructed data **********************************************************
+// The code contained in this section is specific to the analysis of the NDE. If this adder where used for another
+// analysis this section can (and should) be deleted without breaking the scripts ability to add histogram data
+// together.
+final int BIN_NUM = 50;
+final float BEAM_ENERGY = 11.0;  // GeV
+
+float ndeAtI1_3, ndeAtI1_2, ndeAtI1_1, ndeAtI1_0, ndeAtI0_98, ndeAtI0_95, ndeAtI0_92, ndeAtI0_90 = 0;
+float dndeAtI1_3, dndeAtI1_2, dndeAtI1_1, dndeAtI1_0, dndeAtI0_98, dndeAtI0_95, dndeAtI0_92, dndeAtI0_90 = 0;
+float ndeGenAtI, dndeGenAtI = 0;
+int nentriesTotal1_3, nentriesTotal1_2, nentriesTotal1_1, nentriesTotal1_0, nentriesTotal0_98, nentriesTotal0_95, nentriesTotal0_92, nentriesTotal0_90 = 0;
+int nentriesTotalGen = 0;
+
+// Count number of entries in the reconstructed and generated momentum histograms
 for(int i = 0; i < BIN_NUM; i++){
-	nentriesTotal += histograms1D[Hist1D.hmomentumRec.ordinal()].getDataY(i);
+	nentriesTotal1_3 += histograms1D[Hist1D.hmomentumRec1_3.ordinal()].getDataY(i);
+	nentriesTotal1_2 += histograms1D[Hist1D.hmomentumRec1_2.ordinal()].getDataY(i);
+	nentriesTotal1_1 += histograms1D[Hist1D.hmomentumRec1_1.ordinal()].getDataY(i);
+	nentriesTotal1_0 += histograms1D[Hist1D.hmomentumRec1_0.ordinal()].getDataY(i);
+	nentriesTotal0_98 += histograms1D[Hist1D.hmomentumRec0_98.ordinal()].getDataY(i);
+	nentriesTotal0_95 += histograms1D[Hist1D.hmomentumRec0_95.ordinal()].getDataY(i);
+	nentriesTotal0_92 += histograms1D[Hist1D.hmomentumRec0_92.ordinal()].getDataY(i);
+	nentriesTotal0_90 += histograms1D[Hist1D.hmomentumRec0_90.ordinal()].getDataY(i);
 	nentriesTotalGen += histograms1D[Hist1D.hmomentumGen.ordinal()].getDataY(i);
-}
+}// end loop to count entries
 
-System.out.println("Total: " + nentriesTotal + " Total Gen: " + nentriesTotalGen);
-System.out.println("At rec 3: " + histograms1D[Hist1D.hmomentumRec.ordinal()].getDataY(3));
-System.out.println("At found 3: " + histograms1D[Hist1D.hmomentumFound.ordinal()].getDataY(3));
+System.out.println("Total: " + nentriesTotal1_3 + " Total Gen: " + nentriesTotalGen);
 
 // get data from momentum histograms
-float[] hmomentumRecData = histograms1D[Hist1D.hmomentumRec.ordinal()].getData();
-float[] hmomentumFoundData = histograms1D[Hist1D.hmomentumFound.ordinal()].getData();
+float[] hmomentumRecData1_3 = histograms1D[Hist1D.hmomentumRec1_3.ordinal()].getData();
+float[] hmomentumFoundData1_3 = histograms1D[Hist1D.hmomentumFound1_3.ordinal()].getData();
+float[] hmomentumRecData1_2 = histograms1D[Hist1D.hmomentumRec1_2.ordinal()].getData();
+float[] hmomentumFoundData1_2 = histograms1D[Hist1D.hmomentumFound1_2.ordinal()].getData();
+float[] hmomentumRecData1_1 = histograms1D[Hist1D.hmomentumRec1_1.ordinal()].getData();
+float[] hmomentumFoundData1_1 = histograms1D[Hist1D.hmomentumFound1_1.ordinal()].getData();
+float[] hmomentumRecData1_0 = histograms1D[Hist1D.hmomentumRec1_0.ordinal()].getData();
+float[] hmomentumFoundData1_0 = histograms1D[Hist1D.hmomentumFound1_0.ordinal()].getData();
+float[] hmomentumRecData0_98 = histograms1D[Hist1D.hmomentumRec0_98.ordinal()].getData();
+float[] hmomentumFoundData0_98 = histograms1D[Hist1D.hmomentumFound0_98.ordinal()].getData();
+float[] hmomentumRecData0_95 = histograms1D[Hist1D.hmomentumRec0_95.ordinal()].getData();
+float[] hmomentumFoundData0_95 = histograms1D[Hist1D.hmomentumFound0_95.ordinal()].getData();
+float[] hmomentumRecData0_92 = histograms1D[Hist1D.hmomentumRec0_92.ordinal()].getData();
+float[] hmomentumFoundData0_92 = histograms1D[Hist1D.hmomentumFound0_92.ordinal()].getData();
+float[] hmomentumRecData0_90 = histograms1D[Hist1D.hmomentumRec0_90.ordinal()].getData();
+float[] hmomentumFoundData0_90 = histograms1D[Hist1D.hmomentumFound0_90.ordinal()].getData();
 
 float[] hmomentumGenData = histograms1D[Hist1D.hmomentumGen.ordinal()].getData();
 float[] hmomentumGenFoundData = histograms1D[Hist1D.hmomentumGenFound.ordinal()].getData();
@@ -237,24 +156,58 @@ float currentP = step/2;
 
 // loop over data from histograms and create NDE histogram
 for(int i = 0; i < BIN_NUM; i++){ 
-    if(hmomentumRecData[i] != 0){
-        ndeAtI = hmomentumFoundData[i]/hmomentumRecData[i];
-        dndeAtI = Math.sqrt(ndeAtI*(1-ndeAtI)*nentriesTotal)/nentriesTotal;
-        graphs[Graph.hNDE.ordinal()].addPoint(currentP, ndeAtI, 0, dndeAtI);
-        System.out.println("i: " + i + " P: " + currentP + " NDE: " + ndeAtI + " +/- " + dndeAtI);
+    if(hmomentumRecData1_3[i] != 0){
+        ndeAtI1_3 = hmomentumFoundData1_3[i]/hmomentumRecData1_3[i];
+        dndeAtI1_3 = Math.sqrt(ndeAtI1_3*(1-ndeAtI1_3)*nentriesTotal1_3)/nentriesTotal1_3;
+        graphs[Graph.hNDE1_3.ordinal()].addPoint(currentP, ndeAtI1_3, 0, dndeAtI1_3);
+    }
+    if(hmomentumRecData1_2[i] != 0){
+        ndeAtI1_2 = hmomentumFoundData1_2[i]/hmomentumRecData1_2[i];
+        dndeAtI1_2 = Math.sqrt(ndeAtI1_2*(1-ndeAtI1_2)*nentriesTotal1_2)/nentriesTotal1_2;
+        graphs[Graph.hNDE1_2.ordinal()].addPoint(currentP, ndeAtI1_2, 0, dndeAtI1_2);
+    }
+    if(hmomentumRecData1_1[i] != 0){
+        ndeAtI1_1 = hmomentumFoundData1_1[i]/hmomentumRecData1_1[i];
+        dndeAtI1_1 = Math.sqrt(ndeAtI1_1*(1-ndeAtI1_1)*nentriesTotal1_1)/nentriesTotal1_1;
+        graphs[Graph.hNDE1_1.ordinal()].addPoint(currentP, ndeAtI1_1, 0, dndeAtI1_1);
+    }
+    if(hmomentumRecData1_0[i] != 0){
+        ndeAtI1_0 = hmomentumFoundData1_0[i]/hmomentumRecData1_0[i];
+        dndeAtI1_0 = Math.sqrt(ndeAtI1_0*(1-ndeAtI1_0)*nentriesTotal1_0)/nentriesTotal1_0;
+        graphs[Graph.hNDE1_0.ordinal()].addPoint(currentP, ndeAtI1_0, 0, dndeAtI1_0);
+    }
+    if(hmomentumRecData0_98[i] != 0){
+        ndeAtI0_98 = hmomentumFoundData0_98[i]/hmomentumRecData0_98[i];
+        dndeAtI0_98 = Math.sqrt(ndeAtI0_98*(1-ndeAtI0_98)*nentriesTotal0_98)/nentriesTotal0_98;
+        graphs[Graph.hNDE0_98.ordinal()].addPoint(currentP, ndeAtI0_98, 0, dndeAtI0_98);
+    }
+    if(hmomentumRecData0_95[i] != 0){
+        ndeAtI0_95 = hmomentumFoundData0_95[i]/hmomentumRecData0_95[i];
+        dndeAtI0_95 = Math.sqrt(ndeAtI0_95*(1-ndeAtI0_95)*nentriesTotal0_95)/nentriesTotal0_95;
+        graphs[Graph.hNDE0_95.ordinal()].addPoint(currentP, ndeAtI0_95, 0, dndeAtI0_95);
+    }
+    if(hmomentumRecData0_92[i] != 0){
+        ndeAtI0_92 = hmomentumFoundData0_92[i]/hmomentumRecData0_92[i];
+        dndeAtI0_92 = Math.sqrt(ndeAtI0_92*(1-ndeAtI0_92)*nentriesTotal0_92)/nentriesTotal0_92;
+        graphs[Graph.hNDE0_92.ordinal()].addPoint(currentP, ndeAtI0_92, 0, dndeAtI0_92);
+    }
+    if(hmomentumRecData0_90[i] != 0){
+        ndeAtI0_90 = hmomentumFoundData0_90[i]/hmomentumRecData0_90[i];
+        dndeAtI0_90 = Math.sqrt(ndeAtI0_90*(1-ndeAtI0_90)*nentriesTotal0_90)/nentriesTotal0_90;
+        graphs[Graph.hNDE0_90.ordinal()].addPoint(currentP, ndeAtI0_90, 0, dndeAtI0_90);
     }
     if(hmomentumGenData[i] != 0){
         ndeGenAtI = hmomentumGenFoundData[i]/hmomentumGenData[i];
         dndeGenAtI = Math.sqrt(ndeGenAtI*(1-ndeGenAtI)*nentriesTotalGen)/nentriesTotalGen;
         graphs[Graph.hNDEGen.ordinal()].addPoint(currentP, ndeGenAtI, 0, dndeGenAtI);
-        System.out.println("P Gen: " + currentP + " NDE Gen: " + ndeGenAtI + " +/- " + dndeGenAtI);
     }
     currentP += step;
 } // end loop over data
-
-System.out.println("File summation complete!");
-System.out.println("Summed histograms stored in " + inputFileBase + "_Total" + FILE_SUFFIX);
 //****************************************************************************************************************
 
+//= Print success and write summed histograms to file ============================================================
+System.out.println("File summation complete!");
+System.out.println("Summed histograms stored in " + inputFileBase + "_Total" + FILE_SUFFIX);
 //write summed histograms to file
 histFileFinal.writeFile(inputFileBase + "_Total" + FILE_SUFFIX);
+//================================================================================================================
